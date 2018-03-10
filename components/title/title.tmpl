@@ -1,0 +1,28 @@
+<script id="main" type="text/template">
+  <ul{{? it.class }} class="{{=it.class}}"{{?}}></ul>
+</script>
+<script id="text" type="text/template">
+  <ul>
+    {{~it.text :value:index}}
+      <li><span>{{=value}}</span></li>
+    {{~}}
+  </ul>
+</script>
+<script id="style" type="text/template">
+  .title {
+    text-align: center;
+  }
+  .title ul {
+    display: block;
+    margin: -110px 0 0 0; padding: 0; list-style-type: none;
+    text-transform: uppercase; font-weight: bold; cursor: pointer;
+  }
+  .title ul li {
+    display: inline-block; text-decoration: none; width: 8%;
+    font-size: 600%; line-height: 200%; position: relative;
+  }
+  .title ul li span {
+    position: absolute; top: -100px; left: 0; width: 100%;
+    background-color: rgba(100, 10, 100, 0);
+  }
+</script>

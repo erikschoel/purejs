@@ -1,0 +1,35 @@
+<script id="icons" type="text/template">
+  <ul class="icons tooltip-enabled" data-tooltip="data-item">
+    {{~it.icons :value:index}}
+      <li data-item="{{=value.prefix}} fa-{{=value.icon}}" data-tooltip="data-item">
+        <i class="{{=value.prefix}} fa-{{=value.icon}}"></i>
+      </li>
+    {{~}}
+  </ul>
+</script>
+<script id="fas" data-type="style" type="text/template">
+  .modal-fas .modal-body {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  .modal-body ul.icons {
+    list-style: none;
+    padding: 0;
+  }
+  .modal-body ul.icons li {
+    float: left;
+    margin: 2px;
+    width: 30px;
+    height: 30px;
+  }
+  .modal-body ul.icons li svg {
+    padding: 5px;
+    height: 100%;
+    width: 100%;
+    text-align: center;
+  }
+  .modal-body ul.icons li:hover {
+    cursor: pointer;
+    border: 2px solid black;
+  }
+</script>

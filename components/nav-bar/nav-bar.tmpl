@@ -1,0 +1,39 @@
+<script id="main" type="text/template">
+  <div class="navbar-collapse collapse">
+  </div>
+</script>
+<script id="header" type="text/template">
+  <div class="navbar-header" data-parent="#{{#def.id}}" href="#{{=it.id}}">
+    <a class="navbar-brand" href="#">{{=it.name}}</a>
+  </div>
+</script>
+<script id="toggle" type="text/template">
+  <button type="button" class="navbar-toggle">
+    <span class="icon-bar"></span>
+    <span class="icon-bar"></span>
+    <span class="icon-bar"></span>
+  </button>
+</script>
+<script id="style" type="text/template">
+  body {
+    padding-top: 50px;
+  }
+  body > .navbar {
+    position: fixed; top: 0; left: 0; width: 100%; z-index: 1050;
+  }
+  body > .navbar .dropdown.navbar-nav {
+    width: 100%;
+  }
+  body > .navbar .navbar-toggle {
+    position: absolute; top: 0; right: 0; margin-top: 6px; margin-right: 10px;
+  }
+  .navbar.navbar-bottom {
+    bottom: 0; margin-bottom: 0;
+    position: absolute; width: 100%;
+  }
+  @media (max-width: 768px) {
+    body > .navbar .navbar-collapse.collapse .pull-right {
+      position: absolute; top: 40px; right: -20px; margin-right: 0;
+    }
+  }
+</script>

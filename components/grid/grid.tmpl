@@ -1,0 +1,17 @@
+<script id="main" type="text/template">
+</script>
+<script id="item" type="text/template">
+  <div id="{{=it.id}}" class="cell" data-row="{{=it.row}}" data-col="{{=it.col}}"></div>
+</script>
+<script id="style" type="text/template">
+  .grid {
+    height: 100%; width: 100%;
+  }
+  .grid .cell {
+    height: 23%; width: 18%; float: left; margin: 15px;
+    border: 1px solid black; opacity: 0;
+  }
+  .grid .cell.clear {
+    clear: both;
+  }
+</script>

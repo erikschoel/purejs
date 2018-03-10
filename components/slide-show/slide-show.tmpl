@@ -1,0 +1,47 @@
+<script id="slide" type="text/template">
+    <div id="{{#def.id}}" class="drag-and-drop draggable{{? it.class }} {{=it.class}}{{?}}"></div>
+</script>
+<script id="carousel" type="text/template">
+  <div class="carousel slide carousel-fit" data-ride="carousel" data-interval="60000">
+    <div class="carousel-inner">
+    </div>
+  </div>
+</script>
+<script id="slide-img" type="text/template">
+    <div class="item{{? it.active }} active{{?}}">
+      <div>
+        <img data-src="{{=it.data}}">
+        {{? it.title }}<h1>{{=it.title}}</h1>{{?}}
+        <div class="carousel-caption" style="left: 0;">
+          <h2>{{=it.label}}</h2>
+          <p>{{=it.text}}</p>
+        </div>
+      </div>
+    </div>
+</script>
+<script id="control" type="text/template">
+  <a class="{{=it.move}} carousel-control" href="Javascript:" data-control="{{=it.control}}" data-move="{{=it.move}}">
+    <span class="glyphicon glyphicon-chevron-{{=it.move}}"></span>
+  </a>
+</script>
+<script id="fullscreen" data-type="style" type="text/template">
+  .modal.modal-fullscreen .modal-content {
+    background: #333;
+  }
+  .modal.modal-fullscreen .modal-header {
+    color: #fff;
+  }
+  .modal.modal-fullscreen .modal-footer {
+    padding: 30px;
+  }
+  .modal.modal-fullscreen .carousel-inner h1 {
+    position: absolute; top: 15%; left: 0; width: 100%; font-size: 600%;
+    text-transform: uppercase; letter-spacing: 5px; font-weight: bold; color: gray;
+  }
+  .modal.modal-fullscreen .carousel-inner h2 {
+    margin-bottom: 40px;
+  }
+  .modal.modal-fullscreen .carousel-inner p {
+    font-size: 1.2em; width: 100%; padding: 0 30px;
+  }
+</script>

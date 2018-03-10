@@ -1,0 +1,32 @@
+<script id="main" type="text/template">
+  <div class="table-wrapper">
+
+  </div>
+</script>
+<script id="toolbar" type="text/template">
+  <div class="btn-toolbar{{? it.class }} {{=it.class}}{{?}}" data-parent="#{{#def.id}}" href="#{{=it.id}}">
+
+    <div class="btn-group focus-btn-group">
+      <button class="btn btn-default"><span class="glyphicon glyphicon-screenshot"></span> Focus</button>
+    </div>
+  </div>
+</script>
+<script id="table" type="text/template">
+  <div class="table{{? it.class }} {{=it.class}}{{?}}"{{? it.style }} style="{{=it.style}}"{{?}}>
+    <table id="{{=it.id}}" class="table table-hover">
+      <tbody>
+      </tbody>
+    </table>
+  </div>
+</script>
+<script id="column" type="text/template">
+  <td {{? it.id }}id="{{=it.id}}"{{?}}{{? it.class }}class="{{=it.class}}"{{?}}{{? it.path }}data-path="{{=it.path}}"{{?}}>{{=it.innerText}}</td>
+</script>
+<script id="style" type="text/template">
+  .table.table-header {
+    margin-bottom: 0;
+  }
+  .table.table-hover tr:hover {
+    cursor:pointer;
+  }
+</script>

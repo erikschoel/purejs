@@ -1,0 +1,65 @@
+<script id="main" type="text/template">
+  {{? it.button }}
+  <div class="dropdown">
+    <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+      {{=it.button}}
+      <span class="caret"></span>
+    </button>
+    <ul{{? it.class }} class="{{=it.class}}"{{?}} data-id="#{{=it.id}}"></ul>
+  </div>
+  {{??}}
+    <ul{{? it.class }} class="{{=it.class}}"{{?}} data-id="#{{=it.id}}"></ul>
+  {{?}}
+</script>
+<script id="button" type="text/template">
+  <div class="dropdown">
+    <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+      Dropdown
+      <span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+      <li><a href="#">Action</a></li>
+      <li><a href="#">Another action</a></li>
+      <li><a href="#">Something else here</a></li>
+      <li role="separator" class="divider"></li>
+      <li><a href="#">Separated link</a></li>
+    </ul>
+  </div>
+</script>
+<script id="item" type="text/template">
+  <li{{? it.class }} class="{{=it.class}}"{{?}}
+    data-nid="{{#def.id}}"
+    {{? it.path }} data-path="{{=it.path}}"{{?}}
+    {{? it.key }} data-key="{{=it.key}}"{{?}}>
+  	<a {{? it.href || it.route }}href="{{=it.href || it.route }}"{{? it.id }} data-id="{{=it.id}}"{{?}}{{?? !it.key}}href="#{{=it.base || ''}}{{=it.id}}"{{?}}>
+      <i class="{{=it.icon || 'fas fa-user'}}"></i>
+  		{{=it.name || it.desc || ''}}{{? it.glyph }}<span class="glyphicon {{=it.glyph}}"></span>{{?}}
+  	</a>
+  </li>
+</script>
+<script id="dropdown" type="text/template">
+  <li class="dropdown{{? it.submenu }} dropdown-submenu{{?}}{{? it.class }} {{=it.class}}{{?}}"
+    data-nid="{{#def.id}}"
+    {{? it.path }} data-path="{{=it.path}}"{{?}}
+    {{? it.key }} data-key="{{=it.key}}"{{?}}>
+    <a{{? it.childcount}} class="dropdown-toggle"{{?}} data-toggle="dropdown" href="Javascript:">
+      <i class="{{=it.icon || 'fas fa-user'}}"></i>
+      {{=it.name || it.desc}}{{? it.childcount}}<span class="caret"></span>{{?}}
+    </a>
+  </li>
+</script>
+<script id="style" type="text/template">
+	.dropdown-submenu {
+	    position: relative;
+	}
+
+	.dropdown-submenu .dropdown-menu {
+	    top: 0;
+	    left: 100%;
+	    margin-top: -1px;
+	}
+  .dropdown-menu > .active > a {
+      margin-left: -20px;
+      padding-left: 40px;
+  }
+</script>

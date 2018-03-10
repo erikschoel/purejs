@@ -1,0 +1,46 @@
+<script id="main" type="text/template">
+  <div class="select-box">
+    <div class="panel panel-default panel-left">
+      <div class="panel-heading">
+        <h3 class="panel-title">Items reeds aanwezig</h3>
+      </div>
+      <div class="panel-body">
+      </div>
+    </div>
+    <div class="panel panel-default panel-right">
+      <div class="panel-heading">
+        <h3 class="panel-title">Items geselecteerd</h3>
+      </div>
+      <div class="panel-body">
+      </div>
+    </div>
+  </div>
+</script>
+<script id="items" type="text/template">
+  <ul class="items">
+    {{~it.items :value:index}}
+    <li class="active" data-id="{{=value.id}}">
+      {{=value.desc}}</a>
+    </li>
+    {{~}}
+  </ul>
+</script>
+<script id="style" type="text/template">
+  .select-box {
+    z-index: 100;
+  }
+  .select-box .panel {
+    width: 45%;
+    border: 1px solid #DDD;
+  }
+  .select-box .panel.panel-left {
+    float: left;
+  }
+  .select-box .panel.panel-right {
+    float: right;
+  }
+  .select-box .panel ul {
+    list-style: none;
+    padding: 0;
+  }
+</script>

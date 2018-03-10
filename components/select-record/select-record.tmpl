@@ -1,0 +1,32 @@
+<script id="items" type="text/template">
+  <div class="items">
+    {{~it.items :value:index}}
+      <div class="item" data-item="{{=value.type}}_{{=value.id}}">
+        <span>{{=value.desc}}</span>
+      </div>
+      <span class="btn open"><i class="far fa-edit"></i></span>
+    {{~}}
+  </div>
+</script>
+<script id="fas" data-type="style" type="text/template">
+  .modal-record .modal-body {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  .modal-body div.items {
+    width: 100%;
+  }
+  .modal-body table tbody {
+    width: 100%;  
+    overflow-x: auto;
+  }
+  .modal-body div.items .item {
+    border-bottom: 1px solid #DDD;
+    padding: 5px; display: inline-block;
+    width: calc(100% - 50px);
+  }
+  .modal-body div.items .item:hover {
+    cursor: pointer;
+    text-shadow: 1px 0 0 #000;
+  }
+</script>

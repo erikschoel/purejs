@@ -1,0 +1,60 @@
+html, body {
+  height: 100%;
+  width: 100%;
+}
+body {
+    /*padding-top: 10px;*/
+    overflow: hidden;
+    position: fixed;
+    margin: 0;
+}
+div, nav, ul, li {
+    border-radius: 0 !important;
+    font-size: 16px;
+}
+* {
+  -webkit-user-drag: none;
+}
+#root {
+	height: 100%;
+	width: 100%;
+	overflow: hidden;
+}
+#loader {
+  position: absolute;
+  top: 50%; left: 50%;
+  display: none;
+}
+#root > div {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  padding-top: 15px;
+}
+body.home > nav {
+  display: none;
+}
+.cell.row {
+  margin: 0;
+}
+.cell.col,
+.cell.col .module {
+  height: 100%;
+}
+#r0.row {
+  height: 90%; margin: 0;
+}
+#r1.row {
+  height: 10%; width: 100%;
+  position: relative;
+}
+.find #r0c2.col {
+  height: 100%; overflow-y: auto;
+}
+.application #r0c2 {
+  height: 100%;
+  overflow-y: auto;
+}
+.types #r0c2 {
+  height: 100%;
+}

@@ -1,0 +1,169 @@
+<script id="input" type="text/template">
+  <div class="form-group{{? it.class }} {{=it.class}}{{?}}">
+    {{? it.label }}<label for="{{=it.id}}">{{=it.label}}</label>{{?}}
+    <input class="form-control {{=it.dbid || it.id || ''}}"{{? it.placeholder }} placeholder="{{=it.placeholder}}"{{?}}
+      {{? it.dbid }} data-dbid="{{=it.dbid}}"{{?}}
+      {{? it.id }} data-bind-name="{{=it.id}}"{{??}}data-bind-name="{{#def.bind}}"{{?}}
+      {{? it.type }} type="{{=it.type}}"{{?}}>
+  </div>
+</script>
+<script id="record" type="text/template">
+  <div class="form-group{{? it.class }} {{=it.class}}{{?}} record">
+    {{? it.label }}<label for="{{=it.id}}">{{=it.label}}</label>{{?}}
+    <input{{? it.id }} data-bind-name="{{=it.id}}"{{?}} type="{{=it.type}}" class="form-control {{=it.dbid}}"{{? it.placeholder }} placeholder="{{=it.placeholder}}"{{?}}>
+    <span class="btn button" data-value="record" data-name="{{=it.id}}"><i class="fas fa-copy"></i></span>
+  </div>
+</script>
+<script id="fas" type="text/template">
+  <div class="form-group{{? it.class }} {{=it.class}}{{?}} icon select">
+    {{? it.label }}<label for="{{=it.id}}">{{=it.label}}</label>{{?}}
+    <input disabled="disabled"{{? it.id }} data-bind-name="{{=it.id}}"{{?}} type="{{=it.type}}" class="form-control {{=it.dbid}}"{{? it.placeholder }} placeholder="{{=it.placeholder}}"{{?}}>
+    <span class="btn button" data-value="fas" data-name="{{=it.id}}"><i class="fas fa-copy"></i></span>
+  </div>
+</script>
+<script id="textarea" type="text/template">
+  <div class="form-group{{? it.class }} {{=it.class}}{{?}}">
+    {{? it.label }}<label for="{{=it.id}}">{{=it.label}}</label>{{?}}
+    <textarea id="{{=it.id}}"{{? it.id }} data-bind-name="{{=it.id}}"{{?}} type="{{=it.type}}" class="form-control"{{? it.placeholder }} placeholder="{{=it.placeholder}}"{{?}}>
+    </textarea>
+  </div>
+</script>
+<script id="select" type="text/template">
+  <div class="form-group{{? it.class }} {{=it.class}}{{?}}">
+    <label>{{=it.label}}</label>
+    <select{{? it.id }} data-bind-name="{{=it.id}}"{{?}} class="form-control"{{? it.data }} data-source="{{=it.data}}"{{?}}>
+      {{? it.empty }}<option>-</option>{{?}}
+      {{~it.options :value:index}}
+      <option value="{{=value.value}}">{{=value.label}}</option>
+      {{~}}
+    </select>
+  </div>
+</script>
+<script id="checkbox" type="text/template">
+  <div class="checkbox{{? it.class }} {{=it.class}}{{?}}">
+    <label><input{{? it.id }} id="{{=it.id}}" data-bind-name="{{=it.id}}"{{?}} type="checkbox">{{=it.label}}</label>
+  </div>
+</script>
+<script id="multiple" type="text/template">
+  <div class="form-group{{? it.class }} {{=it.class}}{{?}}">
+    {{? it.label }}<label>{{=it.label}}</label>{{?}}
+    {{~it.options :value:index}}
+    <div class="checkbox">
+      <label><input type="checkbox"{{? value.id }} data-bind-name="{{=value.id}}" name="{{=value.id}}"{{?}} value="{{=value.value}}">{{=value.label}}</label>
+    </div>
+    {{~}}
+  </div>
+</script>
+<script id="radio" type="text/template">
+  <div class="form-group{{? it.class }} {{=it.class}}{{?}}">
+    {{? it.label }}<label>{{=it.label}}</label>{{?}}
+    {{~it.options :value:index}}
+    <div class="radio">
+      <label><input type="radio"{{? value.id }} data-bind-name="{{=value.id}}" name="{{=value.id}}"{{?}} value="{{=value.value}}">{{=value.label}}</label>
+    </div>
+    {{~}}
+  </div>
+</script>
+<script id="button" type="text/template">
+  <button type="{{=it.type}}" class="btn{{? it.class }} {{=it.class}}{{?}}">{{=it.label}}</button>
+</script>
+<script id="component" type="text/template">
+  <div class="form-group">
+    <label for="{{=it.id}}">{{=it.label}}</label>
+    <div id="{{=it.id}}" class="{{? it.class }}{{=it.class}}{{??}}{{=it.klass}}{{?}}" data-klass="{{=it.klass}}"></div>
+  </div>
+</script>
+<script id="list" type="text/template">
+  <div class="form-list" data-bind-ext="{{=it.path}}">
+  </div>
+</script>
+<script id="group" type="text/template">
+  <div class="form-group" data-bind-ext="{{=it.path}}">
+    <div class="drop-wrap top"><hr class="droppable"/></div>
+    <div class="drop-wrap"><hr class="droppable"/></div>
+    <div class="btn-wrap">
+      <span class="btn dbid" data-bind-name="dbid"></span>
+      <span class="btn madr">madr_<span class="madr" data-bind-name="madr"></span></span>
+      <button type="button" class="btn close" data-value="remove">×</button>
+      <span class="btn record" data-value="record" data-bind-name="style:style.btn.record"><i class="fas fa-copy"></i></span>
+      <span class="btn edit" data-value="edit" data-bind-name="style:style.btn.edit"><i class="far fa-edit"></i></span>
+    </div>
+  </div>
+</script>
+<script id="panel" type="text/template">
+  <div class="panel panel-default {{#def.class}}">
+    <div class="panel-heading">
+    <h3 class="panel-title" data-bind-name="attr.desc"></h3>
+    </div>
+    <div class="panel-body" data-load-name="attr.tag"{{? it.id }} data-bind-id="{{=it.id}}"{{?}}>
+    </div>
+  </div>
+</script>
+<script id="style" type="text/template">
+  .form {
+    position: relative; width: 100%; border: 1px solid #EEE; padding: 20px;
+  }
+  .form .component.code-edit {
+    height: 150px; border: 2px solid #DDD;
+  }
+  .form .form-list {
+    width: 100%; z-index: 1; margin-top: -15px;
+  }
+  .form .form-list > .form-group {
+    border-bottom: 1px solid #DDD;
+    margin-left: -15px; margin-right: -15px;
+    padding-left: 15px; padding-right: 15px;
+    margin-bottom: 5px; padding-top: 15px;
+    position: relative;
+  }
+  .form .form-list > .form-group > .btn-wrap {
+    position: absolute;
+    z-index: 11;
+    top: 0;
+    right: 0;
+  }
+  .form .form-list > .form-group > .btn-wrap > button {
+    display: block; font-size: 24px; opacity: 0.2;
+  }
+  .form .form-list > .form-group > .btn-wrap > span.btn {
+    opacity: 0.4;
+    padding: 4px;
+    margin-top: -1px;
+    float: right;
+    cursor: pointer;
+  }
+  .form .form-group.select label {
+    display: block;
+  }
+  .form .form-group.select input {
+    width: calc(100% - 40px);
+    display: inline-block;
+  }
+  .form .form-group.select span.button {
+    border: 1px solid black;
+    padding: 7px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .form .form-list > .form-group > .drop-wrap {
+    position: absolute; bottom: -30px;
+    left: 0; width: 100%; z-index: 10;
+    padding: 0 5px; box-sizing: content-box; margin-left: -5px;
+  }
+  .form .form-list > .form-group > .drop-wrap.top {
+    display: none; top: -25px; bottom: auto;
+  }
+  .form .form-list > .form-group.top > .drop-wrap.top {
+    display: block;
+  }
+  .form .form-list > .form-group > .drop-wrap hr {
+    width: 100%; border: 0; height: 20px;
+    padding: 0 5px; box-sizing: content-box; margin-left: -5px;
+  }
+  .form .form-list > .form-group.top > .drop-wrap.top hr {
+    height: 15px;
+  }
+  .form .panel.form.component {
+    border: 1px solid #DDD;
+  }
+</script>

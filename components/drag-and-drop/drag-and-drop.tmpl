@@ -1,0 +1,34 @@
+<script id="main" type="text/template">
+  <div id="{{#def.id}}" class="drag-and-drop drag-wrap{{? it.class }} {{=it.class}}{{?}}"></div>
+</script>
+<script id="style" type="text/template">
+  .drag-and-drop.dd-wrap.dragging {
+    position: absolute; z-index: 10000;
+    top: 0; left: 0; width: 100%; height: 100%;
+  }
+  .drag-and-drop.drag-wrap {
+    position: absolute; top: 100px; left: 50px; border: 1px solid #EEE; padding: 20px; z-index: 10001;
+  }
+  .drag-and-drop.drag-wrap.moving {
+    z-index: 0;
+  }
+  .draggable .drag-focus,
+  .drag-and-drop.drag-wrap .drag-focus {
+    width: 0px; height: 0px; opacity: 0; display: block;
+  }
+  .drag-and-drop:not(.dragging) .draggable .hover {
+    border: 3px solid black !important; cursor: pointer;
+  }
+  .drag-and-drop .draggable.dragging {
+    border: 3px solid red; cursor: pointer;
+  }
+  .drag-and-drop.dragging:not(.drag-wrap) .drop-wrap.hover .droppable {
+    background: rgba(0, 0, 0, 0.1);
+  }
+  .drag-wrap.dragging,
+  .draggable .dragging {
+    position: fixed; z-index: 10001;
+    border: 2px solid red; cursor: pointer; background: white;
+    opacity: 0.9; font-size: 1.2em; box-shadow: 4px 5px 10px 4px;
+  }
+</script>

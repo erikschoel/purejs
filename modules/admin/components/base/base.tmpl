@@ -1,0 +1,38 @@
+<script id="main" type="text/template">
+  <ul{{? it.class }} class="{{=it.class}}"{{?}}></ul>
+</script>
+<script id="admin" type="text/template">
+  <div class="panel panel-default panel-admin">
+    <div class="panel-heading">
+    <h3 class="panel-title">{{=it.title}}</h3>
+    </div>
+    <div class="panel-body">
+    <ul class="items">
+    {{~it.items :value:index}}
+      <li{{? value.value }} class="active"{{?}}><span>{{=value.label}}</span></li>
+    {{~}}
+    </ul>
+    </div>
+  </div>
+</script>
+<script id="style" type="text/template">
+  .admin.component {
+    height: 100%; overflow-y: auto;
+    padding: 10px 10px;
+  }
+  .panel-admin {
+    margin-bottom: 10px;
+  }
+  .panel-admin .panel-heading h3 {
+    font-size: 20px;
+  }
+  .panel-admin .panel-body {
+    padding-bottom: 5px;
+  }
+  .panel-admin .items {
+    padding-left: 5%; padding-right: 5%; color: #BBB;
+  }
+  .panel-admin .items li.active {
+    color: #444; font-weight: 500; letter-spacing: 1px;
+  }
+</script>

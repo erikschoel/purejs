@@ -1,0 +1,72 @@
+<script id="main" type="text/template">
+  <div class="panel-heading">
+    <h4 class="panel-title">
+      <a data-toggle="collapse" data-parent="#{{#def.id}}"{{? it.id }} data-id="#{{=it.id}}"{{?}} href="Javascript:">
+        <span class="glyphicon glyphicon-folder-close"></span>{{=it.name}}
+      </a>
+      {{? it.add }}
+      <a data-click="data.control.main.add" data-parent="#{{#def.id}}"{{? it.id }} data-id="#{{=it.id}}"{{?}}{{? it.path }} data-path="{{=it.path}}"{{?}} href="Javascript:">
+        <span class="glyphicon glyphicon-plus pull-right"></span>
+      </a>
+      {{?}}
+    </h4>
+  </div>
+  <div{{? it.noid }}{{?? it.id }} data-id="{{=it.id}}"{{?}}{{? it.path }} data-path="{{=it.path}}"{{?}} class="panel-collapse collapse">
+    <div class="panel-body">
+      <table class="table">
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</script>
+<script id="item" type="text/template">
+  <tr{{? it.id }} data-id="{{=it.id}}"{{?}}{{? it.path }} data-path="{{=it.path}}"{{?}} data-key="{{=it.key}}">
+    <td>
+      <a href="Javascript:">
+        <span class="glyphicon glyphicon-pencil text-primary">
+          {{? it.label }}{{=it.label}}{{??}}{{? it.name }}{{=it.name}}{{??}}{{=it.key}}{{?}}{{?}}
+        </span>
+      </a>
+    </td>
+  </tr>
+</script>
+<script id="style" type="text/template">
+  .accordion .panel-body {
+    font-size: 0.8em;
+    padding: 0 0 0 5px;
+    max-height: 300px;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .accordion .panel-body.anim-start {
+    border-top: none !important;
+  }
+  .accordion .panel-body.anim-done {
+    overflow: auto;
+  }
+  .accordion .panel-body a {
+      text-decoration: none !important;
+  }
+  .accordion .panel-body .text-primary {
+    font-size: 1.2em;
+    letter-spacing: 2px;
+    font-weight: 500;
+    font-family: sans-serif;
+    width: max-content;
+  }
+  .accordion .panel-default {
+    margin-bottom: 10px;
+  }
+  .accordion .glyphicon {
+    margin-right: 5px;
+  }
+  .accordion .glyphicon-pencil:before {
+    margin-right: 5px;
+  }
+  .accordion .panel-body table {
+    margin-top: 15px; margin-bottom: 5px;
+  }
+</script>

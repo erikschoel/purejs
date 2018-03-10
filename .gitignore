@@ -1,0 +1,5 @@
+*.sublime-*
+sftp-config.json
+.DS_Store
+pure-js.sublime-project
+pure-js.sublime-workspace

@@ -1,0 +1,92 @@
+<script id="main" type="text/template">
+    <div class="modal-dialog">
+      <div class="modal-content"{{? it.bindnode }} data-bind-node="{{=it.bindnode}}"{{?}}>
+        <div class="modal-header"{{? it.bindpath }} data-bind-path="{{=it.bindpath}}"{{?? !it.bindnode }} data-bind-path="data.main.header"{{?}}>
+          {{? it.full }}
+            <button type="button" class="btn btn-danger pull-right" data-value="close" aria-hidden="true">
+              <span class="glyphicon glyphicon-remove"></span><span>Close</span>
+            </button>
+          {{??}}
+            <button type="button" class="close" data-value="close">&times;</button>
+          {{?}}
+          <h4 class="modal-title" data-bind-name="{{? it.title }}{{=it.title}}{{??}}title{{?}}"></h4>
+        </div>
+        <div class="modal-body" data-bind-path="data.main.body">
+        </div>
+        <div class="modal-footer" data-bind-path="data.main.footer">
+        </div>
+      </div>
+    </div>
+</script>
+<script id="backdrop" type="text/template">
+  <div class="modal-backdrop fade in"></div>
+</script>
+<script id="message" type="text/template">
+  <p>{{=it.message}}</p>
+</script>
+<script id="button" type="text/template">
+  <button {{? it.style }}style="{{=it.style}}"{{?}} data-event-name="{{=it['data-event-name'] || 'btn-click'}}" data-value="{{=it.value}}" type="button" class="btn btn-default">{{=it.text}}</button>
+</script>
+<script id="style" type="text/template">
+  .modal.no-scroll {
+      overflow: auto;
+  }
+  .modal .modal-dialog {
+      box-sizing: content-box;
+  }
+  .modal.inline {
+      position: relative; height: 100%; z-index: 1000;
+  }
+  .modal.inline .modal-dialog {
+      margin: 0 15px 0 0; width: inherit; height: 100%;
+  }
+  .modal.inline .modal-header {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; z-index: 1000;
+  }
+  .modal.inline .modal-body {
+      height: 100%;
+  }
+  .modal.inline .modal-content {
+      box-shadow: none; height: 100%;
+      padding-top: 55px; padding-bottom: 75px;
+  }
+  .modal.inline .tabs.panel {
+      padding-bottom: 45px;
+  }
+  .modal-open .modal-body .tabs .tab-content {
+      max-height: 500px;
+  }
+  .modal .btn-default {
+      min-width: 80px; float: right; margin: 5px;
+  }
+  .modal-title {
+      max-height: 25px;
+      overflow: hidden;
+  }
+  .modal-body form,
+  .modal-body .form {
+      position: relative; top: 0; left: 0;
+  }
+  .modal-body .tabs.panel {
+      border: none; box-shadow: none;
+  }
+  .modal-body .tabs ul {
+      top: 31px;
+  }
+  .modal-footer .alert {
+    padding: 25px 13px 24px 15px;
+    margin: -15px 15px 0 -15px;
+    width: 100%; box-sizing: content-box;
+    text-align: left; text-indent: 20px;
+  }
+  .modal-footer .alert.anim-done {
+    display: none;
+  }
+  .modal-footer .alert.anim-open,
+  .modal-footer .alert.anim-start,
+  .modal-footer .alert.anim-running {
+    display: block;
+  }
+</script>

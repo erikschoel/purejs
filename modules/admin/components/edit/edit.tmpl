@@ -1,0 +1,35 @@
+<script id="basket" type="text/template">
+  <div class="panel panel-default panel-basket ques-{{=it.bask_id}}">
+    <div class="panel-heading">
+    <h3 class="panel-title">{{=it.bask_desc}}</h3>
+    </div>
+    <div class="panel-body">
+    <ul class="items">
+    {{~it.items :value:index}}
+      <li{{? value.item_count }} class="active"{{?}}><span>{{=value.item_desc}}</span></li>
+    {{~}}
+    </ul>
+    </div>
+  </div>
+</script>
+<script id="wrapper" data-type="style" type="text/template">
+  .basket.component {
+    height: 100%; overflow-y: auto;
+    padding: 10px 10px;
+  }
+  .panel-basket {
+    margin-bottom: 10px;
+  }
+  .panel-basket .panel-heading h3 {
+    font-size: 20px;
+  }
+  .panel-basket .panel-body {
+    padding-bottom: 5px;
+  }
+  .panel-basket .items {
+    padding-left: 5%; padding-right: 5%; color: #BBB;
+  }
+  .panel-basket .items li.active {
+    color: #444; font-weight: 500; letter-spacing: 1px;
+  }
+</script>
