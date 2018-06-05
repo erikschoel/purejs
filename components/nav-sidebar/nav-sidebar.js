@@ -20,7 +20,7 @@ define(function() {
             dd.$fn('attrs').run(attrs);
             dd.$fn('attach').run(elem.unit());
             dd.parent().attach();
-            return nav;
+            return dd.parent();
           };
         },
         toggle: function() {
@@ -67,6 +67,11 @@ define(function() {
           return { 'class' : 'sidebar-nav'}
         }
 
+      },
+      data: {
+        main: {
+          isLoading: true
+        }
       },
       events: {
         data: {

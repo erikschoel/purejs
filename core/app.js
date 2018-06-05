@@ -707,8 +707,14 @@
               return (v || (v = this)).constructor === Function;
             }),
             (function pick() {
-              return this.keys().reduce(function(r, v, k) {
-                if (r.keys.indexOf(k) > -1) r.res[k] = v;
+              return this.keys().reduce(function(r, k, i) {
+                if (r.keys.indexOf(k) > -1) r.res[k] = r.self[k];
+                return r;
+              }, { self: this, keys: [].slice.call(arguments).flat(), res: {} }).res;
+            }),
+            (function omit() {
+              return this.keys().reduce(function(r, k, i) {
+                if (r.keys.indexOf(k) < 0) r.res[k] = typeof r.self[k] === 'object' ? r.self[k].object(true) : r.self[k];
                 return r;
               }, { self: this, keys: [].slice.call(arguments).flat(), res: {} }).res;
             }),
@@ -857,7 +863,9 @@
             klass.prop('path', sys.root.get('utils.path'));
             Object.prototype.keys  = sys.get('utils.call')(Object.keys);
             Object.prototype.clone = sys.get('utils.update');
+            Object.prototype.obj = sys.get('utils.call')(klass.fromConstructor('$pure'));
             Object.prototype.map = type.map;
+            Object.prototype.konst = sys.get('utils.call')()
           }
         };
       }),
@@ -963,6 +971,8 @@
                 return x.isSome();
               })).filter(function(x) {
                 return x.length;
+              }).map(function(x) {
+                return x instanceof Array ? x.map(item => item instanceof this.__ ? item.unit() : item) : x;
               });
             }),
             (function pure(x) {
@@ -980,8 +990,8 @@
             }
           },
           maybe: function($maybe) {
-            return function() {
-              return (this._maybe || (this._maybe = $maybe.of(this)));
+            return function(cache) {
+              return cache !== false ? (this._maybe || (this._maybe = $maybe.of(this))) : $maybe.of(this);
             }
           },
           lookup: function($maybe) {
@@ -989,6 +999,9 @@
               var args = [].slice.call(arguments).flat().filter(unit);
               return args.length ? this.lookup(args.join('.')) : (this._maybe || (this._maybe = $maybe.of(this)));
             }
+          },
+          cont: function() {
+            return this.chain(this.$fn.cont.pure);
           },
           init: function(type, klass, sys) {
             var root = this.$store.root, utils = root.get('utils');
@@ -1009,6 +1022,29 @@
             // this.root().base
             Object.prototype.maybe = type.maybe(klass);
             this.find('Node').prop('maybe', type.lookup(klass));
+          }
+        };
+      }),
+    // === List === //
+      (function List() {
+        return {
+          parent: 'Maybe',
+          klass: function List(x) {
+            this.$$init(x);
+          },
+          ext: [
+            (function unit() {
+              return this._x && this._x instanceof Array ? this._x.map(mb => mb.unit ? mb.unit() : mb) : this._x;
+            })
+          ],
+          of: function($maybe, $list) {
+            return function(x) {
+              return x && x instanceof $maybe ? x : new $list(x);
+            }
+          },
+          init: function(type, klass, sys) {
+            klass.$ctor.list = this.$ctor.list;
+            klass.of = klass.prop('of', klass.$ctor.$of = klass.$ctor.of = type.of(this.$ctor, klass.$ctor));
           }
         };
       }),
@@ -1513,6 +1549,7 @@
                 Cont: klass.find('Cont').of,
                 functor: klass.find('Functor'),
                 maybe: klass.find('Maybe'),
+                list: klass.find('List'),
                 aid: this.makeID('arr'),
                 log: sys.log,
                 utils: sys.get('utils').select('atom', 'call', 'call1', 'call2', 'andThen', 'pass', 'target', 'extend'),
@@ -1535,6 +1572,7 @@
               Array.prototype.info    = ext.utils.call(sys.get('utils.point.map')(ext.log));
               Array.prototype.klass   = ext.functor.find;
               Array.prototype.to      = ext.functor.to;
+              Array.prototype.functor = ext.utils.call(ext.functor.pure);
               return ext;
             }),
             (function() {
@@ -1589,6 +1627,7 @@
                   return f(r && r.length == 1 ? r.first() : r);
                 }) ];
               };
+              Array.prototype.list = this.utils.call(this.list.fromConstructor('list'));
               return this;
             }),
             (function(ext) {
@@ -1618,6 +1657,9 @@
                     return k(r && r.length == 1 ? r.first() : r);
                   }
                 });
+              };
+              Array.prototype.kont = function() {
+                return this.cont().cont();
               };
               return ext;
             })
@@ -1883,6 +1925,7 @@
           parent: 'Node',
           klass: function Record(x) {
             this.$super(x);
+            this.store().lock();
           },
           ext: [
             { name: '_children', value: 'nodes' },
@@ -1893,11 +1936,26 @@
                 return this._parent;
               }
             }),
+            (function current() {
+              var args = [].slice.call(arguments);
+              return args.length ? this.get(args.flat().join('.')) : this;
+            }),
             (function dbid() {
               if (!this.get('dbid')) {
                 this.set('dbid', this.lookup('madi').prop('replace', 'madi', 'create').unit());
               }
               return this;
+            }),
+            (function mare() {
+              return this.lookup('dbid').lift((dbid, madi) => {
+                return madi.replace('madi', 'mare') === dbid ? madi : dbid;
+              }).ap(this.lookup('madi'));
+            }),
+            (function madi() {
+              return this.lookup('marl').filter(m => m.indexOf('_') > 0).orElse(this.get('madi')).orElse(this.cid()).unit();
+            }),
+            (function load() {
+              return this.lookup(this.madi());
             }),
             (function object(recur) {
               return this.children().reduce(function $reduce(r, v, k, o) {
@@ -1919,30 +1977,11 @@
                 return r;
               }, { result: {}, record: this }).result;
             }),
-            (function push(code, values) {
-              return this.lookup(code, function(node) {
-                return node.child(code);
-              }).map(function(data) {
-                var list = data.children();
-                var name = '' + list.length();
-                if (values) {
-                  return data.child(name).maybe().lift(function(child, vals) {
-                    return child.parse(vals, true).dbid();
-                  }).ap(data.$schema.get('$app').control('main').add(code, values));
-                }else {
-                  return data.schema().prop('related', code).lift(function(empty, child) {
-                    return child.parse(empty, true).dbid();
-                  }).ap(data.child(name));
-                }
-              });
-            }),
-            (function parentinfo() {
-              return this.schema().get('parent_id').lift(function(pid, schema) {
-                return schema.get(pid);
-              }).ap(this.$schema.get('$app'));
+            (function retrieve(dbid) {
+              return this.$model.retrieve(dbid);
             }),
             (function toJSON(recur) {
-              var data = this.object(recur === true).clone(this.select('dbid', 'madi', 'marl', 'madr', 'marr'));
+              var data = this.object(recur === true).clone(this.select('dbid', 'madi', 'marl', 'madr', 'marr','count','attr'));
               return data.keys().reduce(function(r, k) {
                 if (typeof data[k] === 'object') {
                   r = r.clone(data[k]);
@@ -1950,7 +1989,7 @@
                   r[k] = data[k];
                 }
                 return r;
-              }, { childcount: this.children().filter((v, k) => k.match(/^(madi|mare)\_[0-9]+$/) && v.length()).length });
+              }, { uid: this.uid(), count: this.children().filter((v, k) => k.match(/^(madi|mare)\_[0-9]+$/) && v.length()).length });
             }),
             (function code(key) {
               return this.$schema.get('$app').lookup(key).map(function(schema) {
@@ -1962,21 +2001,27 @@
             (function schema() {
               return this.$schema.lookup('$app').lift(function(schema, code) {
                 return schema.get(code);
-              }).ap(this.parent().lookup('madi', function(parent) {
-                return parent.cid();
-              }));
+              }).ap(this.madi());
             }),
-            (function related(code) {
+            (function related(code, first) {
               return this.maybe().lift(function(node, schema) {
-                return node.get(schema.cid()) || node.get('0', schema.cid());
-              }).ap(this.$schema.get('$app').getByCode(code));
+                return node.get(schema.cid()) || node.get(node.children().keys(0), schema.cid());
+              }).ap(this.$schema.get('$app').getByCode(code)).map(function(madi) {
+                return first ? madi.children().first() : madi;
+              });
             }),
             (function reference(code) {
               return this.schema().prop('reference', code).ap(this.lookup(code));
             }),
+            (function insert(dbid, node) {
+              if (!this.$index.get(dbid)) {
+                this.$index.set(dbid, { uid: node.uid(), refs: [] });
+              }
+              return node;
+            }),
             (function nodes() {
-              return this.children().filter(function(node) {
-                return node.cid().indexOf('madi') === 0;
+              return this.children().filter(function(node, key) {
+                return key.indexOf('mare') === 0;//node.cid().indexOf('madi') === 0;
               }).map(function(node) {
                 return node.ref();
               });
@@ -1984,33 +2029,278 @@
             (function model() {
               return this.closest(this.$model.ctor);
             }),
-            (function source() {
-              return (this._source || (this._source = this.model().source().run(this)));
+            (function root() {
+              var node = this;
+              while (node && !this.$model.ctor.is(node.parent())) {
+                node = node.parent();
+              }
+              return node;
+            }),
+            (function find(dbid) {
+              return this.model().retrieve(dbid);
+            }),
+            (function source(client) {
+              var model = this.model().get(client.cid()) || this.model().create(client.cid());
+              var source = model.source();
+              return this.$ref(model);
             }),
             (function client(client) {
-              return this.model().client(client);
+              return (this._source || (this._source = this.model().source().run(this))).run(client);
             }),
             (function append() {
               return this.$append.run(this);
+            }),
+            (function locate() {
+              return this.$locate.run(this);
+            }),
+            (function push(code, values) {
+              return this.lookup(code, function(node) {
+                return values ? node.current('*' + values.dbid) : null;
+              }).orElse(function() {
+                //console.log('model.push.madi:', code, values.dbid, this.cid());
+                return this.child({ name: code, dbid: values.dbid });
+              }, this).lift(function(node, data) {
+                if (values) {
+                  if (values.dbid && values.dbid.indexOf('mare') === 0) {
+                    return data.find(values.dbid).map(function(record) {
+                      //console.log('model.push: found existing', values.dbid);
+                      record.refs().prop('run');
+                      return record;
+                    }).orElse(function() {
+                      //console.log('model.push: create new record', values.dbid);
+                      return node.child(values.dbid);
+                    }).map(function(child) {
+                      node.children().set('*' + child.cid(), child.uid());
+                      return child;
+                    }).lift(function(c, v) {
+                      return c.$parse(v);
+                    }).ap(values);
+                  }else {
+                    return node.maybe().lift(function(c, v) {
+                      return c.$parse(v.omit('nodes')).clone({ nodes: v.nodes });
+                    }).ap(values);
+                  }
+                }else {
+                  return data.schema().prop('related', code).lift(function(empty, child) {
+                    return child.parse(empty, true).dbid();
+                  }).ap(node.child('*mare_' + node.children().length()));
+                }
+              }).ap(this.maybe());
+            }),
+            (function read() {
+              return this.maybe();
             })
           ],
           append: function() {
             return sys.klass('io').pure(function(record) {
               return this.fx(function(data) {
-                return record.push(data ? (data.marl || data.madi || record.get('madi')) : record.get('madi'), data);
+                return record.push(data ? (data.marl || data.madi || record.get('madi')) : record.get('madi'), data.obj());
               });
             });
           },
-          record: function(meta) {
-            var dst = this.get('record') || this.node('record');
-            var rec = dst.child(meta);
+          locate: function() {
+            return sys.klass('io').pure(function(ref) {
+              return this.fx(function(data) {
+                return data.dbid.indexOf('mare') === 0 ? ref.find(data.dbid).prop('$ref', ref) : ref.lookup(data.marl || data.madi).prop('$ref', ref);
+              });
+            });
+          },
+          exists: function($exists) {
+            return function exists(options) {
+              var dbid = this.extractID(options), exists;
+              if (dbid.indexOf('mare') === 0) {
+                return this.$index.get(dbid);
+              }else {
+                return $exists.call(this, options);
+              }
+            };
+          },
+          record: function($klass) {
+            return function(opts) {
+              return this.child(opts, $klass.$ctor);
+            }
+          },
+          parse: function($nodes, $control) {
+            return function(data) {
+              return $nodes(data, this.parse(this.$schema.get('$app').control('main').add(data.marl || data.madi, data, true), true));
+            }
+          },
+          nodes: function($nodes) {
+            return function(data, record) {
+              return $nodes(data, record).orElse(data).unit();
+            }
+          },
+          $nodes: function(data, record) {
+            //console.log('$nodes', [ data.marl || data.madi, data.dbid, data, record ]);
+            if (data && data.format === 'named' && data.nodes && data.nodes.length) {
+              return Array.prototype.concat.apply([], data.nodes.map((name) => record.append().ap(data[name].length ? data[name] : []))).list();
+            }else if (data && data.format === 'nodes' && data.nodes && data.nodes.length) {
+              return record.append().ap(data.nodes).list();
+            }else { 
+              return record.klass('Obj').of(data).omit('nodes').maybe(false);
+            }
+          },
+          $refs: function(handler) {
+            return function refs() {
+              return this.ctor.lookup('refs', this.cid()).map(refs => refs.list()).map(refs => refs.ap(handler));
+            }
+          },
+          $handler: function() {
+            return this.klass('io').pure(function(ref) {
+              return ref.update();
+            });
           },
           init: function(type, klass, sys) {
+            klass.find('Node').prop('$record', type.record(klass));
+            klass.prop('$dbid', klass.prop('$index', sys.root.node('index').child('dbid')));
             klass.prop('$append', type.append());
+            klass.prop('$locate', type.locate());
+            klass.prop('$parse', type.parse(type.nodes(type.$nodes)));
+            klass.prop('exists', klass.proto('exists'));
+            klass.prop('refs', type.$refs(type.$handler.call(sys)));
             klass.prop('$fn', {
               args: sys.get('utils.getArgs'), toString: sys.get('utils.toString'),
               dbid: klass.makeID('mare_', 1000), tmpid: klass.makeID('tmp_')
             });
+          }
+        };
+      }),
+    // === Ref === //
+      (function() {
+        return {
+          parent: 'Record',
+          klass: function Ref(opts) {
+            this.$super(opts);
+            this.set('*dbid', (this._dbid = this.cid()));
+          },
+          ext: [
+            (function identifier(asArray) {
+              var idtf = this._parent.identifier(true).concat([ this._cid ]);
+              return asArray ? idtf : idtf.join('.');
+            }),
+            (function parentinfo() {
+              return this.schema().get('parent_id').lift(function(pid, schema) {
+                return schema.get(pid);
+              }).ap(this.$schema.get('$app'));
+            }),
+            (function read(key, value) {
+              if (key && key === '*dbid') {
+                return this.$index.lookup(value).map(item => sys.find(item.uid));
+              }else {
+                return this.$model.retrieve(this.cid());
+              }
+            }),
+            (function update(key) {
+              if (key) {
+                return this.lookup(key).prop('update');
+              }else {
+                var record = this.ctor.is(this.parent()) ? this.parent() : this;
+                return record.read().prop('children').prop('emit', 'change', this.cid(), 'update', '').orElse(this);
+              }
+            }),
+            (function set(key, value) {
+              var parts = key.split('.');
+              if (parts.length > 1 && parts[0].indexOf('mare') === 0) {
+                return this.lookup(parts.shift()).prop('set', parts.join('.'), value).unit();
+              } else if (parts.length === 1) {
+                return this.__.prototype.set.call(this, key, value);
+              } else {
+                var record = this.ctor.is(this.parent()) ? this.parent() : this;
+                record.read().prop('children').prop('emit', 'change', this.cid(), 'update', '');
+                return this.read().prop('set', parts.join('.'), value).unit();
+              }
+            }),
+            (function nodes() {
+              return this.children().filter(function(node, key) {
+                return key.indexOf('*') === 0;
+              }).map(function(node) {
+                return node.ref();
+              });
+            }),
+            (function values(recur, children, nodes) {
+              return this.read().orElse(this).lift(function(rec, list) {
+                return list.vals().reduce(function(r, v, i) {
+                  return v.ref().read().orElse(v.ref()).prop('madi').map(function(code) {
+                    if (nodes) {
+                      r.nodes || (r.nodes = []);
+                      if (!r.nodes.find(n => n === code)) {
+                        r.nodes.push(code);
+                      }
+                    }
+                    return r[code] || (r[code] = {});
+                  }).map(function(rr) {
+                    if (v.cid().indexOf('madi') === 0) {
+                      r[v.cid()] = v.ref().values(recur, children, nodes);
+                    }else {
+                      rr[v.cid()] = v.ref().values(recur, children, nodes);
+                    }
+                    return r;
+                  }).orElse(r).unit();
+                }, rec.reduce(function $values(r, v, k, o) {
+                  if (o.is(v)) {
+                    if (k === 'nodes') {
+                      return v.filter((n, k) => {
+                        return k.indexOf('madi') < 0 && k.indexOf('mare') < 0;
+                      }).reduce(function(r, n) {
+                        r[n.cid()] = n.values(true);
+                        return r;
+                      }, r) || {};
+                    }else if (k.indexOf('madi') === 0) {
+                      debugger;
+                    }else {
+                      r[k] = v.values(true);
+                    }
+                  }else {
+                    r[k] = v;
+                  }
+                  return r;
+                }, {}) || {});
+              }).ap(this.children().maybe()).unit();
+            })
+          ],
+          locate: function() {
+            return sys.klass('io').pure(function(ref) {
+              return this.fx(function(data) {
+                var dbid = data.dbid.indexOf('mare') === 0;
+                var name = dbid ? data.dbid : (data.marl || data.madi);
+                return ref.lookup(name).orElse(function() {
+                  return dbid ? this.find(name).prop('$ref', this).unit() : this.child(name).parse(data.obj().omit('nodes'));
+                }, ref);
+              });
+            });
+          },
+          store: function(klass, store) {
+            return function(cid, record, parent) {
+              return store.push(cid, parent.child(cid, klass.$ctor)) && store.get(cid).last();
+            }
+          },
+          ref: function(store) {
+            return function(parent) {
+              return (parent || this).lookup(this.cid()).orElse(function() {
+                return store(this.cid(), this, parent || this);
+              }, this).unit();
+            }
+          },
+          child: function($make, $ref) {
+            return function(opts, ctor) {
+              var dbid = this.extractID(opts), child;
+              if (dbid.indexOf('mare') === 0) {
+                child = this.insert(dbid, $make.call(this, opts, ctor || this.constructor, this.$model.$db));
+              }else if (dbid.indexOf('madi') === 0 && opts.dbid && opts.dbid.indexOf('madi') === 0) {
+                child = this.insert(dbid, $make.call(this, opts, ctor || this.constructor, this.$model.$db));
+              }else {
+                child = $make.apply(this, arguments);
+              }
+              return child;
+            }
+          },
+          init: function(type, klass, sys) {
+            var node = klass.find('Node');
+            klass.prop('$locate', type.locate());
+            klass.prop('exists', node.proto('exists'));
+            node.prop('$ref', type.ref(type.store(klass, this.$store.node('refs'))));
+            this.prop('child', type.child(node.prop('child'), klass));
+            klass.prop('child', node.prop('child'));
           }
         };
       }),
@@ -2031,10 +2321,12 @@
                 return sys.find(uid);
               });
             }),
-            (function related(code) {
+            (function related(code, first) {
               return this.schema(code).prop('cid').lift(function(madi, schema) {
                 return schema.control('main').add(madi, {});
-              }).ap(this.$schema.lookup('$app')).prop('clone', { marl: code });
+              }).ap(this.$schema.lookup('$app')).prop('clone', { marl: code }).map(function(madi) {
+                return first ? madi.children().first() : madi;
+              });
             }),
             (function schema(code) {
               return this.lookup([ 'nodes', code, 'madi' ]).orElse(code).lift(function(madi, schema) {
@@ -2060,6 +2352,7 @@
               main: {
                 run: function(type, values, norecur) {
                   var root = this.root(), node = {}, def = values === true, vals = typeof values == 'object' ? values : {};
+                  main = root.control('main'),
                   node = root.lookup(type).chain(function(schema) {
                     return schema.lookup('fields').map(function(fields) {
                       return fields.length() ? fields : root.getByCode('sys.type.any').get('fields');
@@ -2085,19 +2378,20 @@
                     });
                   }) || node;
                   if (!norecur) {
+
                     node = root.lookup(type).get('nodes').chain(function(nodes) {
                       return nodes.reduce(function(r, v, k, n) {
                         if (def) {
                           return v.lookup('marl').map(function(name) {
-                            r[name] = { schema: name, fields: root.control('main').merge(name, k, true, true) };
+                            r[name] = { schema: name, fields: main.merge(name, k, true, true) };
                             return r;
                           }).orElse(function() {
-                            r[k] = { schema: k, fields: root.control('main').run(k, true, true) };
+                            r[k] = { schema: k, fields: main.run(k, true, true) };
                             return r;
                           }).unit();
                         }else {
                           r[k] = (vals[k] || (vals[k] = [])).map(function(x) {
-                            return root.control('main').run(k, x, true);
+                            return main.run(k, x, true);
                           });
                         }
                         return r;
@@ -2110,10 +2404,10 @@
                   return node;
                 },
                 defvals: function(type, node, values) {
-                  ['lnid','madi','dbid','marl','madr','marr'].reduce((r, k) => {
+                  ['lnid','madi','dbid','marl','madr','marr','count'].reduce((r, k) => {
                     node[k] || (node[k] = values[k] || r[k]);
                     return r;
-                  }, { madi: type, dbid: '', madr: 0, marl: '', marr: 0 });
+                  }, { madi: type, dbid: '', madr: 0, marl: '', marr: 0, count: 0 });
                   if (!node.type && values.dimension) node.type = values.dimension;
                   return node;
                 },
@@ -2137,10 +2431,10 @@
                 },
                 create: function(type, values, client) {
                   var vals  = values || {};
-                  var data  = this.add(type, vals);
+                  var data  = this.add(type, vals, true);
                   data.dbid = vals.dbid || vals.name || 'mare_0';
                   if (client) {
-                    var inst = client.set('model', sys.get('model').instance(client.cid()).instance(type, 'schema.$app'));
+                    var inst = client.set('model', sys.get('model').create(client.cid()).create(type, 'schema.$app'));
                     var src  = inst.source(client);
                     var node = inst.record(data.dbid);
                     if (node.children().length()) {
@@ -3203,7 +3497,6 @@
           },
           init: function(type, klass, sys) {
             klass.of = type.of(klass.of);
-            //klass.prop('$cast', klass.prop('$$cast').bind(klass.proto()));
             this.prop('$control', type.cntrl(klass));
             klass.prop('$fn', klass.prop('$fn').clone({
               array: sys.get('async.array'),
@@ -3816,9 +4109,8 @@
             dom.set('selectorFunc', dom.get('matches'));
             store.set('selectorFunc', store.get('matches'));
 
-            var record = this.find('Record');
-            var $store = record.prop('$store', sys.get().child('record'));
-            var $index = record.prop('$index', $store.child('index'));
+            var ref = this.find('Ref');
+            var $store = ref.prop('$store', sys.get().child('record'));
             var lstnr  = sys.klass('Listener').$ctor;
             $store.listener = lstnr.init('record', 'store');
             $store._events  = sys.get('events').child({ name: 'events', parent: $store });
@@ -3832,9 +4124,11 @@
           klass: function Model(x) {
             this.$super(x);
             this._meta = this.node('meta');
+            this._models.push(this);
           },
           ext: [
             { name: '_children', value: 'nodes' },
+            { name: '_models', value: [] },
             (function parent() {
               if (this._parent.cid() === 'nodes') {
                 return this._parent.parent();
@@ -3842,11 +4136,14 @@
                 return this._parent;
               }
             }),
-            (function instance(name, schema) {
-              return this.child(name, this.constructor).schema(name, schema);
+            (function model() {
+              return this;
+            }),
+            (function create(name, schema) {
+              return this.child(name, this.constructor, this.$model).schema(name, schema);
             }),
             (function schema(code, path) {
-              this._meta.set(code, path);
+              this._meta.set(code, path || 'schema.$app');
               return this;
             }),
             (function make(values) {
@@ -3863,23 +4160,51 @@
               return this;
             }),
             (function current(code) {
-              return (code ? this.lookup(code) : this.maybe()).get('%current');
+              return code ? this.locate(code) : this.maybe().map(function(node) {
+                return node.get(node.get('current'));
+              });
             }),
-            (function insert(node) {
-              var dbid = node.cid();
-              if (!this.$index.get(dbid)) this.$index.set(dbid, node.uid());
-              return this.get(this.set('current', dbid));
+            (function retrieve(dbid) {
+              return this.$index.lookup(dbid || this.get('current')).map(item => sys.find(item.uid));
             }),
-            (function record(dbid, values) {
-              return this.insert(this.children().child(dbid, this.$record, this).parse(this.make(values), true));
+            (function locate() {
+              var args = [].slice.call(arguments).flat().join('.').split('.'), key;
+              if (args.length) {
+                if (args[0] === 'current' && args.shift()) {
+                  return args.length ? this.retrieve().get(args) : this.retrieve();
+                }else if (args.length > 1) {
+                  return this.retrieve(args.shift()).get(args);
+                }else {
+                  return this.retrieve(args.shift());
+                }
+              }else {
+                return this.retrieve();
+              }
+            }),
+            (function insert(dbid, node) {
+              if (!this.$index.get(dbid)) {
+                this.$index.set(dbid, { uid: node.uid(), refs: [] });
+              }
+              return node;
+            }),
+            (function record(dbid) {
+              var child;
+              if (dbid.indexOf('mare') === 0 || dbid.indexOf('madi') === 0) {
+                child = this.retrieve(dbid).orElse(function() {
+                  return this.$record.prototype.child.call(this, { name: dbid, dbid: dbid }, this.$record);
+                }, this.$db).unit();
+              }else {
+                child = this.$model.children().child(this.set('current', dbid), this.$record, this.$model);
+              }
+              return child;
             }),
             (function load(/* code, dbid */) {
               var args = [].slice.call(arguments);
               var dbid = args.pop();
               var code = args.length ? args.shift() : undefined;
-              return (code ? this.lookup(code) : this.maybe()).chain(function(model) {
+              return (code ? this.lookup(code) : this.maybe()).map(function(model) {
                 if (dbid) {
-                  return model.get(model.set('current', dbid)) || model.record(dbid, {});
+                  return model.record(model.set('current', dbid));
                 }else {
                   return model.get('%current');
                 }
@@ -3893,70 +4218,191 @@
                 return node.get(schema.cid());
               }).ap(this.$schema.get(this._meta.get(this.cid())).getByCode(code));
             }),
-            (function source(client) {
-              return (this._source || (this._source = this.$fn.source.run(client)));
+            (function source() {
+              return (this._source || (this._source = this.$fn.source.run(this)));
             }),
             (function client(client) {
-              return this.source().run(this).run(client);
+              return this.source().run(client);
             })
           ],
           filter: function() {
             return sys.klass('IO').pure(function(fn) {
               return this.fx(function(evt) {
-                var flag = evt.value && evt.value.isStore && evt.target.match(/^(?:[0-9]+|mare\_[0-9]+)$/) ? 'pass' : 'skip';
+                var flag = evt.value && evt.value.isStore && evt.target.match(/^(?:[0-9]+|mare\_[0-9]+|madi\_[0-9]+)$/) ? 'pass' : 'skip';
                 ++fn[flag] && ++fn.total;
                 if (fn.total%250==0) console.log('total: ', fn.total, 'pass: ', fn.pass, 'skip: ', fn.skip);
                 return flag === 'pass' ? fn.right(evt) : fn.left(evt);
               });
             }).run(sys.get('utils').select('left','right').clone({ pass: 0, skip: 0, total: 0 }));
           },
-          indexer: function() {
+          indexer: function(model) {
             return sys.klass('IO').pure(function(node) {
               return function(client) {
+                // console.log('indexer', client.cid(), client.identifier());
                 return node.set('client', client);
               };
             }).pipe();
           },
           source: function() {
-            return sys.klass('IO').of(function(index, io) {
+            return sys.klass('IO').of(function(index, io, pos) {
               return io.ap(io.$pure(function(record) {
-                return index.ensure(record.identifier(true).slice(2));
+                // console.log('index.ensure', record.uid(), record.cid(), record.identifier(true).slice(pos));
+                return index.ensure(record.identifier(true).slice(pos));
               }));
-            }).lift(function(make, client) {
-              var model = client.get('model');
-              var store = model.$source.ensure([ client.cid(), model.cid() ]);
+            }).lift(function(make, model) {
+              var store = model.$source.ensure([ model.cid() ]);
               model.observe('change', '%', model.$fn.filter);
-              return make(store, model.$fn.indexer);
+              return make(store, model.$fn.indexer, 3);
             });
           },
           flush: function(source) {
             return function(evt) {
-              var parts = evt.ref.split('.').slice(2);
-              return source.maybe(parts.slice(0, 2)).map(function(index) {
-                return index.get(parts, evt.target, 'client');
-              }).chain(function(client) {
-                client.load(evt.value.toJSON());
+              var parts = source.is(evt.value) ? evt.value.identifier(true).slice(2) : evt.ref.split('.').slice(2);
+              return source.maybe(parts).map(function(index) {
+                return index.get('client'); //parts, evt.target, 'client');
+              }).map(function(client) {
+                if (client.load) {
+                  client.load(evt.value);
+                }else {
+                  debugger;
+                }
+                //console.log('flush.success', evt.uid, evt.ref, evt.target);
                 return evt;
+              }).orElse(function() {
+                console.log('flush.fail', evt.uid, evt.ref, evt.target);
               });
             }
           },
+          model: function($klass) {
+            return function(opts) {
+              return this.child(opts, $klass.$ctor);
+            }
+          },
+          store: (function(make, main, wrap, render) {
+            return make(main(render.nest().lift(wrap), sys.get('schema.$app').control('main')));
+          })(
+            (function(store) {
+              return function(api) {
+                return api.transformer(this.cid(), store.run(this));
+              }
+            }),
+            (function(render, control) {
+              return sys.klass('IO').lift(function(model, result) {
+                var data = result.dbid ? result : result[result.keys().shift()];
+                return render.run(data).run(model.record(data.dbid));
+              });
+            }),
+            (function(io, data) {
+              return this.$lift(function(record, handler) {
+                return this.fx(function(client) {
+                  var ref = record.source(client);
+                  var rec = io.run(handler).run(client);
+                  var src = record.$parse(data);
+                  return rec.run(data).run(ref);
+                });
+              });
+            }),
+            (function(main, nest) {
+              return nest.call(sys.klass('IO').pure(main));
+            })(
+              (function(handler) {
+                return this.$lift(function(parent, data) {
+                  return this.nest().lift(function(lifted, record) {
+                    return handler.run(parent).run(data).bind(function(client) {
+                      //console.log('lifted', [ data.marl || data.madi, data.dbid, data, record ]);
+                      var rec = record.client(parent) && lifted.run(client).sequence(record.locate());
+
+                      if (data && data.format === 'named' && data.nodes && data.nodes.length) {
+                        return data.nodes.map((name) => {
+                          return data[name].length ? data[name].ap(rec) : [];
+                        }).filter((nodes) => {
+                          return nodes.length;
+                        }).list().orElse(client).unit();
+                      }else if (data && data.nodes && data.nodes.length) {
+                        return data.nodes.ap(rec).collect();
+                      }else {
+                        return client;
+                      }
+
+                    //function(data, record) {
+                      if (data && data.format === 'named' && data.nodes && data.nodes.length) {
+                        return Array.prototype.concat.apply([], data.nodes.map((name) => {
+                          return record.append().ap(data[name].length ? data[name] : []);
+                        })).list();
+                      }else if (data && data.format === 'nodes' && data.nodes && data.nodes.length) {
+                        return record.append().ap(data.nodes).list();
+                      }else { 
+                        return record.klass('Obj').of(data).omit('nodes').maybe(false);
+                      }
+                    //}
+
+                    }).cont();
+                  });
+                });
+              }),
+              (function() {
+                return this.nest().lift(function(process, handler) {
+                  return this.fx(function(parent) {
+                    return process.run(handler).run(parent);
+                  });
+                });
+              })
+            ),
+            (function() {
+                var vals  = values || {};
+                var data  = this.add(type, vals, true);
+                data.dbid = vals.dbid || vals.name || 'mare_0';
+                if (client) {
+                  var inst = client.set('model', sys.get('model').create(client.cid()).create(type, 'schema.$app'));
+                  var src  = inst.source(client);
+                  var node = inst.record(data.dbid);
+                  if (node.children().length()) {
+                    node.children().clear();
+                  }
+                  node.clear();
+                  return node.parse(data, true);
+                }else {
+                  return data;
+                }
+            })
+          ),
+          api: function(path) {
+            return this.root('api').lookup(path.split('/').join('.')).lift(function(api, model) {
+              return api.get(model.cid()) || model.$store(api);
+            }).ap(this).chain(function(api) {
+              return api.request();
+            });
+          },
+          pipe: function(model) {
+            return function(evt) {
+              if (evt.level > 3) {
+                var parts = evt.ref.split('.').slice(3);
+                var recrd = sys.find(evt).parent().root();
+                return model.lookup(recrd.madi()).prop('emit', evt.type, parts.concat(evt.target).join('.'), evt.action, evt.value);
+              }
+            }
+          },
           init: function(type, klass, sys) {
-            var model  = klass.prop('$model', sys.root.child('model', klass.$ctor));
-            var source = klass.prop('$source', model.node('source'));
-            var record = klass.find('Record');
-            var schema = klass.find('Schema');
+            var model   = klass.prop('$model', sys.root.child('model', klass.$ctor));
+            var source  = klass.prop('$source', model.node('source'));
+            var store   = klass.prop('$store', type.store);
+            var store   = klass.prop('$api', type.api);
+            var record  = klass.find('Record');
+            var control = klass.prop('$control', sys.get('schema.$app').control('main'));
+            var root    = klass.prop('root', sys.get);
             klass.prop('$fn', {
-              source: type.source(), indexer: type.indexer(),
+              source: type.source(model), indexer: type.indexer(),
               filter: type.filter().pipe(sys.get('utils.tuple')(unit)(type.flush(source))).wrapIO()
             });
             klass.prop('$schema', sys.root);//.get('schema'));//klass.find('Schema').$ctor);
             klass.prop('$record', record.$ctor);
-            klass.prop('$index', model.node('index'));
+            klass.prop('$index', sys.get('index.dbid'));
             record.prop('$model', model);
-            schema.prop('$model', model);
             var lstnr = sys.klass('Listener').$ctor;
             model.listener = lstnr.init('instance', 'store');
             model._events  = sys.get('events').child({ name: 'events', parent: model });
+            var db = klass.prop('$db', model.child('db'));
+            db.observe('change', '%', type.pipe(model));
           }
         };
       }),
@@ -4001,6 +4447,10 @@
             }),
             (function io() {
               return (this._io || (this._io = this.klass('io').of(this.uid)));
+            }),
+            (function load(record) {
+              //console.log([ 'cmp.load', this.identifier(true).slice(2).join('.'), record.identifier(true).slice(2).join('.'), record.read().prop('madi').unit(), record ]);
+              return this;
             }),
             (function bindpath(path) {
               return this.view().parent('$fn.attrs').run({ 'data-bind-path' : this.state('path', path) });
@@ -4076,8 +4526,9 @@
             (function bindpath(path, node) {
               var bind = { 'data-bind-path' : this.state('path', path) };
               if (node) this.get('data').set('model', node);
-              else this.get('data').node('model');
-              return this.view().parent('$fn.attrs').run(bind);
+              else this.get('data').$record('model');
+              this.view().parent('$fn.attrs').run(bind);
+              return this;
             }),
             (function attach(selector) {
               return this.view().parent('$fn.attach').ap(selector ? (selector.unit ? selector.unit() : selector) : this.parent().$el()).run().map(this.bin(function(comp, el) {
@@ -4249,6 +4700,9 @@
               return function $_pure(k) {
                 comp.run(k);
               };
+            }),
+            (function kont() {
+              return this.klass('Cont').of(this.pure());
             })
           ],
           attrs: [

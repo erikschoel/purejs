@@ -39,18 +39,22 @@ select func_getDimensionID('madi_41');
 use purejs_test;
 
 select *
+, timediff(CURRENT_TIMESTAMP(), coalesce(mare_modified_on, mare_created_on)) as time_diff
 , func_getRecordData(madr_fk_record, func_getDimensionID('sys.lang.nl'))
 , func_getRecordData(func_getMareID(concat('madr_', marr_fk_parent)), func_getDimensionID('sys.lang.nl'))
 from main_dimension_record as madr
 join main_dimension on madi_id = madr_fk_dimension
+join main_record on mare_id = madr_fk_record
 join main_record_value on mava_fk_record = madr_fk_record
 left join main_relation_record on marr_fk_child = madr_id
 -- where madi_code like '%department%'
 -- where madr_id in (443, 450, 361, 47)
 where 1=1
 and not exists (select 1 from main_dimension where madi_id = madr.madr_fk_record)
+and timediff(CURRENT_TIMESTAMP(), coalesce(mare_modified_on, mare_created_on)) < '01:00:00'
 order by madr_id desc;
 
+SELECT TIMEDIFF("2017-06-15 09:34:21", "2017-06-15 15:25:35");
 
 
 -- 341, 354, 466
@@ -313,7 +317,7 @@ where mava_fk_dimension = 127;
 
 
 call stp_selectRecursiveLevels('madi_37', 'sys.lang.nl', FALSE, 0, 0);
-call stp_selectRecursive(81, 'sys.lang.nl', TRUE);
+call stp_selectRecursive(26, 'sys.lang.nl', TRUE);
 call stp_selectRecursive(341, 'sys.lang.nl', TRUE);
 
 call stp_selectRecursive(54, 'sys.lang.nl', TRUE);

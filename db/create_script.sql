@@ -1,5 +1,15 @@
 USE `purejs_test`;
 
+DROP TABLE IF EXISTS `tmp_add_records`;
+DROP TABLE IF EXISTS `tmp_baskets`;
+DROP TABLE IF EXISTS `tmp_collect_records`;
+DROP TABLE IF EXISTS `tmp_items`;
+DROP TABLE IF EXISTS `tmp_options`;
+DROP TABLE IF EXISTS `tmp_question_option`;
+DROP TABLE IF EXISTS `tmp_question_option_unique`;
+DROP TABLE IF EXISTS `tmp_questions`;
+DROP TABLE IF EXISTS `tmp_recursive`;
+
 DROP TABLE IF EXISTS `sys_record_data`;
 DROP TABLE IF EXISTS `sys_transaction_log`;
 DROP TABLE IF EXISTS `sys_transaction`;

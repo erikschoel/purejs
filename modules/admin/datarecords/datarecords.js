@@ -28,23 +28,27 @@ define(function() {
           var dbid   = sys.get('config.modules.admin.modules').get(scope, 'dbid');
           var data   = sys.get('api.db.load.schema').execute({ query: dbid });
 
-          return data.bind(function(d) {
-            var data = sys.get('model').instance(d.madi, 'schema.$app');
-            var node = data.record(d.madi);
-            node.parse(d, true);
-
-            return data.related('sys.type.module').chain(function(data) {
+          return data.bind(function(record) {
+            return record.related('sys.type.module', true).chain(function(data) {
               return [
-                data.related('sys.type.component').get('0.attr.path').chain(function(component) {
+
+                data.related('sys.type.component', true).get('attr.path').chain(function(component) {
                   return sys.eff('sys.loader.component').run([ 'components', component, component ].join('/')).bind(function(c) {
                     return c.create({ name: 'nav', parent: module }).pure();
                   }).cont();
                 }),
                 data
+
               ].lift(function(c, d) {
-                return d.related('sys.type.endpoint').get('0').chain(function(e) {
-                  var query = 'marr_' + d.related('sys.type.any').get('0.marr').unit();
-                  return sys.get('api.db').get(e.get('attr.path')).execute({ query: query }, c);
+                return d.related('sys.type.endpoint', true).chain(function(e) {
+                  var query = 'marr_' + d.related('sys.type.any', true).get('marr').unit();
+                  var query = 'madr_' + d.related('sys.type.any', true).get('madr').unit();
+                  var model = sys.get('model').$api(e.get('attr.path')).run({ query: query });
+                  return model.lift(c.lift(function(nav, io) {
+                    return io.run(io.$lift(function(comp, data) {
+                      return comp.menu(data.dbid, {}, { opts: { close: false } });
+                    })).run(nav);
+                  }));
                 });
               }).collect();
             });
@@ -53,7 +57,7 @@ define(function() {
 
             module.get('nav').proxy('change', 'item', 'current', true);
             module.proxy('change', 'current', 'current', true);
-            module.set('loader', loader.shift().bind(unit)).run(function(result) {
+            module.set('loader', loader.shift()).run(function(result) {
               console.log(result);
             });
             return module;

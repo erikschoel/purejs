@@ -2,7 +2,7 @@ INSERT INTO `main_record`
 SELECT 1, 1, CURRENT_TIMESTAMP(), 'system', null, null FROM (SELECT 1) AS tmp WHERE NOT EXISTS (SELECT 1 FROM `main_record` WHERE mare_id = 1);
 SET @mare_id = 1;
 
-INSERT INTO `main_record_value`
+INSERT INTO `main_record_value` (mava_id, mava_fk_record, mava_fk_dimension, mava_fk_language, mava_fk_value, mava_value)
 SELECT 1, @mare_id, @mare_id, @mare_id, null, 'system' FROM (SELECT 1) AS tmp WHERE NOT EXISTS (SELECT 1 FROM `main_record_value` WHERE mava_fk_record = 1);
 SET @sys_id = 1;
 
@@ -22,6 +22,7 @@ CALL stp_upsertDimension('sys.attr', 'prefix', @prefix_id);
 CALL stp_upsertDimension('sys.attr', 'tag', @tag_id);
 CALL stp_upsertDimension('sys.attr', 'icon', @icon_id);
 CALL stp_upsertDimension('sys.attr', 'route', @route_id);
+CALL stp_upsertDimension('sys.attr', 'module', @module_id);
 CALL stp_upsertDimension('sys.attr', 'path', @path_id);
 CALL stp_upsertDimension('sys.attr', 'name', @name_id);
 CALL stp_upsertDimension('sys', 'event', @evt_id);
@@ -95,14 +96,23 @@ CALL stp_upsertRecordValue(func_getDimensionID('sys.attr.tag'), @tag_id, 'sys', 
 */
 
 CALL stp_upsertDimension('sys', 'type', @type_id);
+CALL stp_upsertDimension('sys.type', 'any', @any_id);
 CALL stp_upsertDimension('sys.type', 'user', @user_id);
 -- CALL stp_upsertMainRecord(func_getDimensionID('sys.type.user'), 'admin', 0, @mare_id);
 CALL stp_upsertDimensionRecord('sys.type.user', 'admin', @admin_id);
 INSERT INTO main_user SELECT madr_fk_record, 'admin', 'admin' FROM main_dimension_record WHERE madr_id = @admin_id;
 
+CALL stp_upsertDimension('sys.type', 'department', @dep_id);
+INSERT INTO main_dimension_record VALUES (0, @dep_id, func_getDimensionID('sys.attr.code'), 0);
+INSERT INTO main_dimension_record VALUES (0, @dep_id, func_getDimensionID('sys.attr.desc'), 0);
+CALL stp_upsertRelation('sys.type.department', 'sys.type.department', @dep_dep_id);
+CALL stp_upsertDimensionRecord('sys.type.department', 'afd-1', @dep_id);
+CALL stp_upsertDimensionRecordValue(@dep_id, func_getDimensionID('sys.attr.desc'), 'sys.lang.nl', 'Afdeling 1', 0, @attr_id);
+
 CALL stp_upsertDimension('sys.type', 'app', @app_id);
 INSERT INTO main_dimension_record VALUES (0, @app_id, func_getDimensionID('sys.attr.desc'), 0);
 CALL stp_upsertDimension('sys.type.app', 'item', @app_item_id);
+INSERT INTO main_dimension_record VALUES (0, @app_item_id, func_getDimensionID('sys.attr.module'), 0);
 INSERT INTO main_dimension_record VALUES (0, @app_item_id, func_getDimensionID('sys.attr.route'), 0);
 INSERT INTO main_dimension_record VALUES (0, @app_item_id, func_getDimensionID('sys.attr.desc'), 0);
 INSERT INTO main_dimension_record VALUES (0, @app_item_id, func_getDimensionID('sys.attr.icon'), 0);
@@ -123,11 +133,17 @@ CALL stp_upsertRelationRecord(func_getDimensionID('sys.type.app.item.item'), fun
 
 CALL stp_upsertDimensionRecord('sys.type.app.item', 'admin/viewmodel', @itm_id);
 CALL stp_upsertDimensionRecordValue(@itm_id, 'sys.attr.desc', 'sys.lang.nl', 'View Model', 0, @attr_id);
+CALL stp_upsertDimensionRecordValue(@itm_id, 'sys.attr.module', 'sys.lang.nl', 'admin/datarecords', 0, @attr_id);
 CALL stp_upsertRelationRecord(func_getDimensionID('sys.type.app.item.item'), func_getMadrId(CONCAT('mare_', @rela_id)), func_getRecordID('sys.type.app.item', 'sys.attr.code', 'admin/viewmodel'), 0, @rela_subid);
 
-CALL stp_upsertDimensionRecord('sys.type.app.item', 'search', @itm_id);
-CALL stp_upsertDimensionRecordValue(@itm_id, 'sys.attr.desc', 'sys.lang.nl', 'Search', 0, @attr_id);
-CALL stp_upsertRelationRecord(func_getDimensionID('sys.type.app.item.item'), @menu_id, func_getRecordID('sys.type.app.item', 'sys.attr.code', 'search'), 0, @rela_id);
+CALL stp_upsertDimensionRecord('sys.type.app.item', 'organisation', @itm_id);
+CALL stp_upsertDimensionRecordValue(@itm_id, 'sys.attr.desc', 'sys.lang.nl', 'Organisatie', 0, @attr_id);
+CALL stp_upsertRelationRecord(func_getDimensionID('sys.type.app.item.item'), @menu_id, func_getRecordID('sys.type.app.item', 'sys.attr.code', 'organisation'), 0, @rela_id);
+
+CALL stp_upsertDimensionRecord('sys.type.app.item', 'admin/organigram', @itm_id);
+CALL stp_upsertDimensionRecordValue(@itm_id, 'sys.attr.desc', 'sys.lang.nl', 'Organigram', 0, @attr_id);
+CALL stp_upsertDimensionRecordValue(@itm_id, 'sys.attr.module', 'sys.lang.nl', 'admin/datarecords', 0, @attr_id);
+CALL stp_upsertRelationRecord(func_getDimensionID('sys.type.app.item.item'), func_getMadrId(CONCAT('mare_', @rela_id)), func_getRecordID('sys.type.app.item', 'sys.attr.code', 'admin/organigram'), 0, @rela_subid);
 
 CALL stp_upsertDimensionRecord('sys.type.app.item', 'account', @itm_id);
 CALL stp_upsertDimensionRecordValue(@itm_id, 'sys.attr.desc', 'sys.lang.nl', 'Account', 0, @attr_id);
@@ -146,16 +162,17 @@ CALL stp_upsertRelationRecord(func_getDimensionID('sys.type.app.item.item'), fun
 CALL stp_upsertDimension('sys.type', 'entity', @enti_id);
 INSERT INTO main_dimension_record VALUES (0, @enti_id, func_getDimensionID('sys.attr.desc'), 0);
 
-INSERT INTO main_record_value
-SELECT 0, mava_fk_record, func_getDimensionID('sys.attr.route'), 1, NULL, mava_value
-FROM main_dimension_record
-JOIN main_record_value AS mava ON mava_fk_record = madr_fk_record AND mava_fk_dimension = func_getDimensionID('sys.attr.code')
-LEFT JOIN main_relation_record ON marr_id = madr_fk_record
-WHERE madr_fk_dimension = func_getDimensionID('sys.type.app.item')
-AND NOT EXISTS (SELECT 1 FROM main_dimension WHERE madi_id = mava.mava_fk_record)
-AND marr_id IS NULL;
+	INSERT INTO main_record_value (mava_id, mava_fk_record, mava_fk_dimension, mava_fk_language, mava_fk_value, mava_value)
+	SELECT 0, mava_fk_record, func_getDimensionID('sys.attr.route'), 1, NULL, mava_value
+	FROM main_dimension_record
+	JOIN main_record_value AS mava ON mava_fk_record = madr_fk_record AND mava_fk_dimension = func_getDimensionID('sys.attr.code')
+	LEFT JOIN main_relation_record ON marr_id = madr_fk_record
+	WHERE madr_fk_dimension = func_getDimensionID('sys.type.app.item')
+	AND NOT EXISTS (SELECT 1 FROM main_dimension WHERE madi_id = mava.mava_fk_record)
+	AND NOT EXISTS (SELECT 1 FROM main_record_value WHERE mava_fk_record = mava.mava_fk_record AND mava_fk_dimension = func_getDimensionID('sys.attr.route'))
+	AND marr_id IS NULL;
 
-SELECT * FROM main_record_value WHERE mava_fk_dimension = func_getDimensionID('sys.attr.route');
+-- SELECT * FROM main_record_value WHERE mava_fk_dimension = func_getDimensionID('sys.attr.route');
 
 CALL stp_upsertDimension('sys.type', 'option', @option_id);
 CALL stp_upsertRecordValue(@option_id, func_getDimensionID('sys.attr.name'), 'sys', 'options', 0, @attr_id);
@@ -165,27 +182,34 @@ INSERT INTO main_dimension_record VALUES (0, @comp_id, func_getDimensionID('sys.
 INSERT INTO main_dimension_record VALUES (0, @comp_id, func_getDimensionID('sys.attr.path'), 0);
 
 CALL stp_upsertDimensionRecord('sys.type.component', 'nav-sidebar', @itm_id);
-CALL stp_upsertRecordValue(@itm_id, func_getDimensionID('sys.attr.path'), 'sys', 'components/nav-sidebar', 0, @attr_id);
+CALL stp_upsertDimensionRecordValue(@itm_id, func_getDimensionID('sys.attr.path'), 'sys', 'nav-sidebar', 0, @attr_id);
 
 CALL stp_upsertDimension('sys.type', 'module', @mod_id);
 INSERT INTO main_dimension_record VALUES (0, @mod_id, func_getDimensionID('sys.attr.code'), 0);
 INSERT INTO main_dimension_record VALUES (0, @mod_id, func_getDimensionID('sys.attr.path'), 0);
 
 CALL stp_upsertDimensionRecord('sys.type.module', 'tree-nav-generic', @itm_id);
-CALL stp_upsertRecordValue(@itm_id, func_getDimensionID('sys.attr.path'), 'sys', 'modules/tree-nav-generic', 0, @attr_id);
+CALL stp_upsertDimensionRecordValue(@itm_id, func_getDimensionID('sys.attr.path'), 'sys', 'modules/tree-nav-generic', 0, @attr_id);
 
 CALL stp_upsertDimension('sys.type', 'endpoint', @endpoint_id);
 INSERT INTO main_dimension_record VALUES (0, @endpoint_id, func_getDimensionID('sys.attr.code'), 0);
 INSERT INTO main_dimension_record VALUES (0, @endpoint_id, func_getDimensionID('sys.attr.path'), 0);
 
 CALL stp_upsertDimensionRecord('sys.type.endpoint', 'db.tree', @itm_id);
-CALL stp_upsertRecordValue(@itm_id, func_getDimensionID('sys.attr.path'), 'sys', 'db.tree', 0, @attr_id);
+CALL stp_upsertDimensionRecordValue(@itm_id, func_getDimensionID('sys.attr.path'), 'sys', 'tree', 0, @attr_id);
+CALL stp_upsertDimensionRecord('sys.type.endpoint', 'db.load', @itm_id);
+CALL stp_upsertDimensionRecordValue(@itm_id, func_getDimensionID('sys.attr.path'), 'sys', 'load', 0, @attr_id);
+
 CALL stp_upsertRelation('sys.type.entity', 'sys.type.item', @enti_type_id);
 CALL stp_upsertRelation('sys.type.module', 'sys.type.endpoint', @mod_ep_id);
 CALL stp_upsertRelationRecord(func_getDimensionID('sys.type.module.endpoint'), func_getRecordID('sys.type.module', 'sys.attr.code', 'tree-nav-generic'), func_getRecordID('sys.type.endpoint', 'sys.attr.code', 'db.tree'), 0, @rela_id);
 
 CALL stp_upsertRelation('sys.type.module', 'sys.type.component', @mod_comp_id);
 CALL stp_upsertRelationRecord(func_getDimensionID('sys.type.module.component'), func_getRecordID('sys.type.module', 'sys.attr.code', 'tree-nav-generic'), func_getRecordID('sys.type.component', 'sys.attr.code', 'nav-sidebar'), 0, @rela_id);
+
+CALL stp_upsertRelation('sys.type.app.item.item', 'sys.type.module', @item_module_id);
+CALL stp_upsertRelation('sys.type.app.item.item.module', 'sys.type.any', @module_any_id);
+CALL stp_upsertRelation('sys.type.app.item.item.module', 'sys.type.endpoint', @module_endpoint_id);
 
 /*
 SELECT * FROM main_record_value WHERE mava_value LIKE 'sys.app%';

@@ -18,21 +18,23 @@ define(function() {
     return {
       ext: {
         main: function() {
-          this.deps('components.dropdown').create({
+          return this.deps('components.dropdown').create({
             name: 'dd', parent: this, node: this.get('data.main'), opts: { close: false }
-          }).run(this.wrap(
+          }).kont().bind(this.wrap(
             this.view().item(this.view().$el()),
             this.$fn('append').ap(this.view().tmpl('main')).run({}),
             this.view().tmpl('wrap'),
             this.$fn('append').ap(this.view().tmpl('toggle')).run({})
-          ));
+          )).cont();
         },
         wrap: function(nav, elem, attrs) {
-          return function(dd) {
+          return function(dd) { 
             dd.$fn('attrs').run(attrs);
             dd.$fn('attach').run(elem.unit());
-            dd.parent().attach(document.body);
-            return nav;
+            if (!dd.parent().state('attach')) {
+              dd.parent().attach(document.body);
+            }
+            return dd.parent();
           };
         },
         item: function(key, values) {
@@ -40,7 +42,6 @@ define(function() {
         },
         menu: function(key, values, opts) {
           return this.lookup('dd').chain(function(dd) {
-            dd.$fn('empty').run();
             return dd.menu(key, values, opts);
           });
         },

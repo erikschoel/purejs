@@ -1,7 +1,7 @@
 <script id="main" type="text/template">
     <div class="modal-dialog">
       <div class="modal-content"{{? it.bindnode }} data-bind-node="{{=it.bindnode}}"{{?}}>
-        <div class="modal-header"{{? it.bindpath }} data-bind-path="{{=it.bindpath}}"{{?? !it.bindnode }} data-bind-path="data.main.header"{{?}}>
+        <div class="modal-header"{{? it.bindpath }} data-bind-path="data.main.header"{{?}}>
           {{? it.full }}
             <button type="button" class="btn btn-danger pull-right" data-value="close" aria-hidden="true">
               <span class="glyphicon glyphicon-remove"></span><span>Close</span>
@@ -11,9 +11,9 @@
           {{?}}
           <h4 class="modal-title" data-bind-name="{{? it.title }}{{=it.title}}{{??}}title{{?}}"></h4>
         </div>
-        <div class="modal-body" data-bind-path="data.main.body">
+        <div class="modal-body"{{? it.bindpath }} data-bind-path="data.main.body"{{?}}>
         </div>
-        <div class="modal-footer" data-bind-path="data.main.footer">
+        <div class="modal-footer"{{? it.bindpath }} data-bind-path="data.main.footer"{{?}}>
         </div>
       </div>
     </div>
@@ -55,7 +55,7 @@
   .modal.inline .tabs.panel {
       padding-bottom: 45px;
   }
-  .modal-open .modal-body .tabs .tab-content {
+  .modal-open #root > .modal .modal-body .tabs .tab-content {
       max-height: 500px;
   }
   .modal .btn-default {

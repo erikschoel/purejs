@@ -1218,6 +1218,9 @@
                           if (result.tmpl) {
                             xtnd(conf.data || (conf.data = {}), { tmpl: result.tmpl });
                           }
+                          if (result.prop) {
+                            comp.$prop(result.prop);
+                          }
                           if (result.$init) {
                             result.$init.call(comp.root(), result, comp, comp.sys());
                           }

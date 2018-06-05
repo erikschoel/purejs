@@ -83,7 +83,7 @@ and tmp.mava_fk_dimension = mava.mava_fk_dimension
 and tmp.mava_fk_language = mava.mava_fk_language
 set mava.mava_value = tmp.mava_value;
 
-insert into main_record_value
+insert into main_record_value (mava_id, mava_fk_record, mava_fk_dimension, mava_fk_language, mava_fk_value, mava_value)
 select *
 from
 (

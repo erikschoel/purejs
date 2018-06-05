@@ -18,6 +18,9 @@ define(function() {
 
     return {
       ext: {
+        initialize: function() {
+          this.bindpath('%current');
+        },
         item: function(key, values) {
           return this.get('data.main.item').replace(key, values || {});
         },
@@ -43,8 +46,8 @@ define(function() {
           change: function(evt) {
             if (evt.action === 'create' && typeof evt.value === 'object' && evt.value.isStore) {
               if (evt.value.length()) {
-                var type = evt.value.parent().cid();
                 var root = this.root();
+                var type = evt.value.parent().cid();
                 if (type === 'item') {
                   return root.$fn('render').run(type).run(evt.value.values(true));
                 }else if (type === 'menu') {
@@ -52,20 +55,23 @@ define(function() {
                   return root.$fn('attach').ap(root.parent('$fn.render').run('dropdown').run(evt.value.values(true)));
                 }
               }
-            }else if (evt.action === 'update') {
+            }else if ((evt.action === 'create' && evt.target === 'ccount') || evt.action === 'update') {
               var root = this.root();
               var node = sys.find(evt);
               var type = node.parent().cid();
               if (type === 'item' || type === 'menu') {
-                root.parent().$el('[data-key="' + node.cid() + '"]').lift(function(elem, make) {
+                root.parent().$el('[data-key="' + node.cid() + '"]').lift(function(elem, html) {
+                  var replace = elem.firstElementChild;
+                  var make = document.createElement('div');
+                  make.innerHTML = html;
+                  make = make.firstElementChild;
                   if (type === 'menu') {
-                    var replace = elem.firstElementChild;
                     elem.insertBefore(make.firstElementChild, replace);
                     elem.removeChild(replace);
                   }else {
                     elem.innerHTML = make.innerHTML;
                   }
-                }).run(root.view().eff('render').to('io').run('div').run(root.view().render(type === 'item' ? 'item' : 'dropdown').run(node.values(true))));
+                }).run(root.parent().view().render(type === 'item' ? 'item' : 'dropdown').run(node.values(true)));
               }
             }
           }
@@ -157,7 +163,8 @@ define(function() {
       events: {
         data: {
           'change:state.current': 'data.control.state.change',
-          'change:data.main.%': 'data.control.data.change'
+          'change:data.main.%': 'data.control.data.change',
+          'change:[data-bind-path]': 'binding'
         },
         dom: {
           'click:li': 'data.control.main.click',

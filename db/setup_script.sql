@@ -534,13 +534,26 @@ CREATE PROCEDURE stp_upsertDimensionRecordValue
 
 		DECLARE RecordID INT UNSIGNED DEFAULT 0;
 
+		-- ATTEMPT TO FIND EXISTING RECORDS VALID FOR THE GIVEN ATTRIBUTES
+
+		-- 1. records with the attribute specifically assigned
+        -- 2. records that carry attributes of either the parent or the child edge(s) of a relation
+        -- 3. records that carry attributes of the immediate parent dimension
+
+		-- THE FOLLOWING LOGIC APPLIES
+        -- 1 & 2: sys.attr.code is a UUID for all except the highest dimension parent
+        -- parents can instruct descendants to handle values read and/or write 
+		-- meta instructions by parent reference can be added to the schema
+        -- e.g. instruction: show values of the dimension parent yes/no
+
+        -- look at dimension records
 		SET RecordID = COALESCE((SELECT madr_fk_record
-			FROM main_dimension_record AS madr
-				JOIN main_dimension AS madi ON madi_id = madr_fk_dimension
-				LEFT JOIN main_relation_record AS marr ON marr_id = madr_fk_record
-				LEFT JOIN main_relation AS marl ON marl_id = marr_fk_relation AND marl_share_child_attrs_yn = 1
-					WHERE madr_id = pDimensionRecordID
-						AND EXISTS (SELECT 1 FROM main_dimension_record
+			FROM main_dimension_record AS madr -- link to the dimension
+				JOIN main_dimension AS madi ON madi_id = madr_fk_dimension -- to gain access to fk_root and fk_parent dimension
+				LEFT JOIN main_relation_record AS marr ON marr_id = madr_fk_record -- and check if we borrow attributes from parent or child relation
+				LEFT JOIN main_relation AS marl ON marl_id = marr_fk_relation AND marl_share_child_attrs_yn = 1 -- but this is turned off by default
+					WHERE madr_id = pDimensionRecordID -- for the given madr_id
+						AND EXISTS (SELECT 1 FROM main_dimension_record -- check for 
 							WHERE madr_fk_dimension IN (madi_fk_root, COALESCE(marl_id, madr.madr_fk_dimension))
 								AND madr_fk_record = func_getDimensionID(pDimension))), 0);
 
@@ -966,7 +979,13 @@ CREATE PROCEDURE stp_upsertRelationRecord
 				START TRANSACTION;
 
 				CALL stp_upsertMainRecord(func_getDimensionID('sys.rela'), func_getUUID(), 0, recid);
-				INSERT INTO `main_relation_record` VALUES (recid, pRelation, pParent, pChild, pOrder);
+				INSERT INTO `main_relation_record` VALUES (
+					recid, pRelation, pParent, pChild, pOrder, COALESCE(
+				(SELECT MAX(marr_level)
+					FROM `main_dimension_record`
+						JOIN `main_relation_record` ON marr_id = madr_fk_record
+                          WHERE madr_id = pParent AND marr_fk_relation = pRelation), 0) + 1);
+
 				INSERT INTO `main_dimension_record` SELECT 0, madr_fk_dimension, marr_id, marr_order
 					FROM `main_relation_record`
 	                  JOIN `main_dimension_record` ON madr_id = marr_fk_child

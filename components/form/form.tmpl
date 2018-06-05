@@ -78,15 +78,15 @@
   </div>
 </script>
 <script id="group" type="text/template">
-  <div class="form-group" data-bind-ext="{{=it.path}}">
+  <div class="form-group" data-bind-ext="{{=it.path}}" data-bind-node="{{=it.dbid}}">
     <div class="drop-wrap top"><hr class="droppable"/></div>
     <div class="drop-wrap"><hr class="droppable"/></div>
     <div class="btn-wrap">
-      <span class="btn dbid" data-bind-name="dbid"></span>
-      <span class="btn madr">madr_<span class="madr" data-bind-name="madr"></span></span>
-      <button type="button" class="btn close" data-value="remove">×</button>
-      <span class="btn record" data-value="record" data-bind-name="style:style.btn.record"><i class="fas fa-copy"></i></span>
-      <span class="btn edit" data-value="edit" data-bind-name="style:style.btn.edit"><i class="far fa-edit"></i></span>
+      <button type="button" class="btn icon close" data-value="remove">×</button>
+      <span class="btn icon record" data-value="record" data-bind-name="style:style.btn.record"><i class="fas fa-copy"></i></span>
+      <span class="btn icon edit" data-value="edit" data-bind-name="style:style.btn.edit"><i class="far fa-edit"></i></span>
+      <span class="btn data dbid" data-bind-name="dbid"></span>
+      <span class="btn data madr"><span>madr_</span><span class="madr" data-bind-name="madr"></span></span>
     </div>
   </div>
 </script>
@@ -165,5 +165,37 @@
   }
   .form .panel.form.component {
     border: 1px solid #DDD;
+  }
+  .form-group .data.btn {
+    margin-right: 10px;
+  }
+  .form-group .btn-wrap .btn.icon {
+    opacity: 0.2 !important;
+    -ms-transform: scale(1.2);
+    -moz-transform: scale(1.2);
+    -webkit-transform: scale(1.2);
+    -o-transform: scale(1.2);
+  }
+  .form-group .btn-wrap .btn.icon {
+    margin-right: 10px;
+  }
+  .form-group .btn-wrap .btn.data {
+    font-size: 10px;
+    opacity: 0.2 !important;
+    cursor: pointer;
+  }
+  .form-group .btn-wrap .btn.icon:hover {
+    opacity: 0.5 !important;
+  }
+  .form-group .btn-wrap .btn {
+    transition: opacity .25s ease-in-out;
+    -moz-transition: opacity .25s ease-in-out;
+    -webkit-transition: opacity .25s ease-in-out;
+  }
+  .form-group .btn-wrap .btn.data {
+    padding-top: 8px !important;
+  }
+  .form-group .btn-wrap .btn.data:hover {
+    opacity: 0.4 !important;
   }
 </script>

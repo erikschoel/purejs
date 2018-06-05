@@ -339,8 +339,8 @@ CREATE PROCEDURE stp_selectRecursiveLevels
 				END) AS tmp_madi,
                 -- CONCAT('madi_', CAST(tmp_dim_rec AS CHAR)) as tmp_madi,
                 -- CASE WHEN madr_fk_record IS NOT NULL THEN func_getRecordData(madr_fk_record, func_getDimensionID(pLanguage)) ELSE NULL END AS info,
-				CASE WHEN tmp.tmp_rec_id = tmp.tmp_marr_id THEN COALESCE(func_getRecordData(tmp_rec_id, func_getDimensionID(pLanguage)), '{}') ELSE '{}' END AS json,
-                func_getRecordData(COALESCE(madr_fk_record, tmp_rec_id), func_getDimensionID(pLanguage)) AS info
+				CASE WHEN tmp.tmp_rec_id = tmp.tmp_marr_id THEN COALESCE(func_getRecordData(tmp_rec_id, func_getDimensionID(pLanguage)), '{}') ELSE '{}' END AS info,
+                func_getRecordData(COALESCE(madr_fk_record, tmp_rec_id), func_getDimensionID(pLanguage)) AS json
 -- 			    CASE
 -- 					WHEN madr_fk_record IS NOT NULL AND madr_fk_record != tmp_rec_id
 --                     THEN func_getRecordData(COALESCE(madr_fk_record, tmp_rec_id), func_getDimensionID(pLanguage))
@@ -364,6 +364,6 @@ DELIMITER ;
 
 -- CALL stp_selectRecursiveLevels('madi_37', 'sys.lang.nl', FALSE, 0, 0);
 
-CALL stp_selectRecursive(54, 'sys.lang.nl', TRUE);
+-- CALL stp_selectRecursive(54, 'sys.lang.nl', TRUE);
 
 -- CALL stp_selectDimension('madi_37', 'sys.lang.nl');

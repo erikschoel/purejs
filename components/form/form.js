@@ -77,7 +77,7 @@ define(function() {
                 if (v) {
                   v.id = prefix + '.' + k;
                   v.name = prefix;
-                  v.dbid = t.name;
+                  v.dbid = t.name || t.dbid;
                   if (v.data) {
                     var d = v.data.split(':'), o, x;
                     if (d.length > 1) {
@@ -155,7 +155,7 @@ define(function() {
                 });
               }).chain(function(items) {
                 var count = items.length;
-                list.children().map(function(v, k, i) {
+                list.nodes().map(function(v, i) {
                   if (count > i) {
                     items[i].classList.remove('hide');
                   }else {
@@ -238,15 +238,20 @@ define(function() {
           make: function(fn) {
             return sys.lookup('schema.$app').lift(fn);
           },
+          model: function() {
+            return (this._model || (this._model = this.root().lookup('data.model').orElse(this.root().parent().get('modal.data.model'))));
+          },
           path: function(evt) {
             return this.root().view().bindelem(evt.currentTarget);
           },
           ref: function(evt) {
-            return sys.get('schema.$app').get(this.root().get('data.model').cid(), this.path(evt).merge([ 'nodes', 'madi' ]).slice(1, -1));
+            return sys.get('schema.$app').get(this.model().prop('cid').unit(), this.path(evt).merge([ 'nodes', 'madi' ]).slice(1, -1));
           },
           node: function(evt) {
             //return sys.get('model').lookup(this.root().view().bindelem(evt.currentTarget));
-            return this.root().lookup('data.model').get(this.path(evt));
+            //return this.root().lookup('data.model').get(this.path(evt));
+            //return this.root().lookup('data.model').prop('locate', this.path(evt));
+            return this.model().prop('locate', this.path(evt));
           },
           field: function(evt, attr) {
             return evt.currentTarget.maybe().map(function(elem) {
@@ -254,7 +259,7 @@ define(function() {
             }).orElse('');
           },
           madi: function(evt) {
-            return this.root().get('data.model').current().prop('schema').get(['nodes',this.root().cid(),'madi']).unit();
+            return this.model().prop('current').prop('schema').get(['nodes',this.root().cid(),'madi']).unit();
           },
           handler: function(field, handler) {
             return function(rec, mod) {
@@ -301,9 +306,11 @@ define(function() {
                 return mod.observe('change', 'state.value', function(evt, hndl) {
                   if (evt.value) {
                     mod.removeEventListener(hndl);
-                    sys.get('api').get('db.load.schema').request().run({ query: [ evt.value, madi ] }).run(function(result) {
+                    sys.get('api').get('db.load').request().run({ query: [ evt.value, madi ] }).run(function(result) {
+                      var name = Object.keys(result).first();
+                      var data = sys.get('schema.$app').control('main').add(result[name].madi, result[name], true);
                       rec.clear();
-                      rec.parse(result, true);
+                      rec.parse(data, true);
                     });
                   }
                 });

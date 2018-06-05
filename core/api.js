@@ -78,7 +78,8 @@ define(function() {
                   this.name, {
                     mf: this.mf
                   }, {
-                    of: this.of
+                    of: this.of,
+                    client: this.client
                   }
                 );
               })
@@ -134,14 +135,14 @@ define(function() {
               var parent  = this.parent(),
                 local   = this.get('config.' + this.config('path')) || '',
                 inherit = parent instanceof this.constructor ? parent.location() : false;
-              return inherit ? (inherit + '/' + local) : local;
+              return inherit ? (inherit + (local ? '/' : '') + local) : local;
             }),
             (function transformer() {
               var args = [].slice.call(arguments);
               var func = args.pop();
               var node = args.length ? this.child(args.shift()) : this;
               node._request = this.make().map(function(req) {
-                return req.bind(func);
+                return func instanceof req.__ ? req.ap(func).bind(unit) : req.bind(func);
               });
               return node;
             }),
@@ -155,9 +156,10 @@ define(function() {
             (function request() {
               return (this._request || (this._request = this.make()));
             }),
-            (function execute(opts, parent) {
+            (function execute(opts, model) {
+              console.log('api.execute', model);
               var req = this.request().run(opts);
-              return parent ? req.ap(parent.model()).bind(unit) : req;
+              return model ? req.ap(model).bind(unit) : req;
             })
           ],
           init: function(type, klass, sys) {

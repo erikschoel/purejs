@@ -15,7 +15,6 @@ define(function() {
   }, function() {
 
     return {
-
       klass: function AdminBase(opts) {
         opts.events = opts.parent._events;
         this.$super(opts);
@@ -106,7 +105,8 @@ define(function() {
               var schema = sys.get(conf.data.schema);
               var deftab = conf.fields.def || 'tab1';
               var name   = json.marl || json.madi;
-              var madi   = json.dbid.indexOf('madi') === 0 ? json.dbid : '';
+              var dbid   = json.dbid;
+              var madi   = dbid.indexOf('madi') === 0 ? dbid : '';
               return this.fx(function() {
                 var cid = form.cid(), fields;
                 var map = conf.fields.map[cid] || deftab;
@@ -128,14 +128,9 @@ define(function() {
           },
           io: function() {
             return (this._io || (this._io = this.klass('io').lift(function(data, comp) {
-              var madi = data.marl || data.madi;
-              var node = comp.get('modal').get('model').load(data.dbid);
+              var modal = comp.get('modal').bindpath(data.dbid);
+              var node  = modal.get('model').load(data.dbid).unit();
 
-              if (node.children().length()) {
-                node.children().clear();
-              }
-              node.clear();
-              node.parse(data, true);
               comp.lookup('form').map(function(form) {
                 return form.control('main').loading(form, node);
               });
@@ -183,16 +178,15 @@ define(function() {
             return (this._setup || (this._setup = this.klass('io').of(function(base, main, conf, modal, tabs, formss, json) {
               var forms  = formss instanceof Array ? formss : [ formss ];
               var schema = sys.get(conf.data.schema);
-              var deftab = conf.fields.def || 'tab1';
-              var name   = json.marl || json.madi, fields;
-              var data   = modal.set('model', sys.get('model').instance(modal.cid()).instance(name, conf.data.schema));
+              var deftab = conf.fields.def || 'tab1', fields;
+              var name   = json.marl || json.madi;
+              var data   = modal.set('model', sys.get('model').create(modal.cid()).create(name, conf.data.schema));
               var src    = data.source(modal);
               var node   = data.record(json.dbid);
 
               data.observe('change', '%', main.handler('data.control.schema.change'));
               modal.get('data').set('model', data);
               modal.view().read().run('main', conf.modal.clone({
-                bindpath: '%current',
                 title: schema.get(name, 'meta', 'desc') || conf.modal.title
               }));
 
@@ -217,7 +211,6 @@ define(function() {
               var load = [ modal, tabs ].concat(conf.forms.map(function(v, k, i) {
                 var form = forms[i];
                 var make = form.set('data.make', rndr.run(form));
-                form.bindpath('%current', data);
                 data.observe('change', '%', form.handler('binding'));
                 return [ make.run(), tabs.item(conf.tabs[v]).cont() ];
               }));
@@ -321,9 +314,10 @@ define(function() {
             if (evt.target === 'button') {
               var root = this.root();
               var conf = root.control('config').read('data');
-              return root.get('modal.model').current().chain(function(data) {
+              return root.get('modal.model').locate('current').chain(function(data) {
                 var code = data.get('dbid');//.replace('mare', data.get('madi'));
                 if (evt.value === 'cancel') {
+                  data.clear();
                   root.reload({ value: code });
                 }else if (evt.value === 'add') {
                   var tabs = root.get(conf.name.replace('madi', 'tabs'));
@@ -352,8 +346,11 @@ define(function() {
                         schema.clear(result.dbid);
                         return schema.parse(result.meta, 3, true);
                       });
+                    }else {
+                      data.clear();
                     }
                     if (result.dbid === code) {
+                      // root.control('admin').load(result).run(root);
                       root.reload({ value: result.dbid });
                     }else {
                       root.reload({ value: result.dbid }, code);
@@ -391,7 +388,6 @@ define(function() {
           'change:state.current':'data.control.state.current'
         }
       }
-
     };
   });
 

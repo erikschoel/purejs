@@ -42,9 +42,20 @@
     data-nid="{{#def.id}}"
     {{? it.path }} data-path="{{=it.path}}"{{?}}
     {{? it.key }} data-key="{{=it.key}}"{{?}}>
-    <a{{? it.childcount}} class="dropdown-toggle"{{?}} data-toggle="dropdown" href="Javascript:">
+    <a{{? it.count}} class="dropdown-toggle"{{?}} data-toggle="dropdown" href="Javascript:">
       <i class="{{=it.icon || 'fas fa-user'}}"></i>
-      {{=it.name || it.desc}}{{? it.childcount}}<span class="caret"></span>{{?}}
+      <span{{? it.count}} class="dropdown-toggle"{{?}} data-bind-name="attr.desc">{{=it.name || it.desc}}</span>{{? it.count}}<span class="caret"></span>{{?}}
+    </a>
+  </li>
+</script>
+<script id="test" type="text/template">
+  <li class="dropdown" :class="it.submenu ? 'dropdown-submenu' : ''"
+    :data-nid="def.id"
+    :data-path="it.path"
+    :data-key="it.key">
+    <a :class="it.count ? 'dropdown-toggle' : ''" data-toggle="dropdown" href="Javascript:">
+      <i :class="it.icon || 'fas fa-user'"></i>
+      <span :class="it.count ? dropdown-toggle : ''" data-bind-name="attr.desc">{{=it.name || it.desc}}</span>{{? it.count}}<span class="caret"></span>{{?}}
     </a>
   </li>
 </script>

@@ -247,7 +247,7 @@
             return this[0](this.slice(1));
           };
           this.prototype.at = function(index) {
-            return this.length && index < this.length ? this[index] : [];
+            return this.length && index < this.length ? this[index] : null;
           };
           this.prototype.first = function() {
             return this.length ? this.at(0) : [];
@@ -592,6 +592,12 @@
                 }
               }
             },
+            $prop: function() {
+              var cache = {}, base = this.find('Obj').of([].slice.call(arguments).shift());
+              return this.prop('prop', function prop(name) {
+                return (cache[name] || (cache[name] = base[name](this.$ctor)));
+              });
+            },
             $overload: function(klass) {
               var ctor = this.$ctor = this.prop('constructor', Object.keys(this.$ctor).reduce(function(r, k) {
                 r.$ctor[k] = r.$old[k];
@@ -644,6 +650,10 @@
             },
             set: function(prop, value) {
               return this.$store.set(prop, value);
+            },
+            lookup: function() {
+              var args = [].slice.call(arguments).flat();
+              return args.length ? this.$store.lookup(args.join('.')) : this.$store.maybe();
             },
             proto: function(name) {
               var $ctor = name ? this.find(name, 'type.$ctor') : this.$ctor;//this.get('type.$ctor');
@@ -819,12 +829,13 @@
       (function() {
         return {
           klass: function DB() {
-            this._base  = this._uid = this.root.base;
-            this._id    = this._uid;
-            this._ref   = this.root.val;
-            this._loc   = [];
-            this._cache = {};
-            this._stock = [];
+            this._base   = this._uid = this.root.base;
+            this._id     = this._uid;
+            this._ref    = this.root.val;
+            this._loc    = [];
+            this._cache  = {};
+            this._stock  = [];
+            this._locked = [];
           },
           ext: [
             (function root() {
@@ -864,8 +875,8 @@
             (function retrieve(nid, cached) {
               return cached ? this.cached(nid) : this.find(nid);
             }),
-            (function push(val, item) {
-              return val[(val.push((this._loc = [ [], item ]))-1)][0];
+            (function push(val, item, ref) {
+              return val[(val.push((this._loc = [ ref || [ [], [], {} ], item ]))-1)][0];
             }),
             (function uid(loc) {
               var uid = 0, val;
@@ -874,8 +885,12 @@
               }
               return this._base+uid;
             }),
-            (function add(item) {
-              if (this._stock.length) {
+            (function add(item, ref) {
+              if (ref && (ref = this.$locate(ref).at(ref%10))) {
+                if (this._uid%10==0) this._val = null;
+                item._uid = this._uid++;
+                return this.push(this._val || (this._val = this.locate(this._uid)), item, ref[0]);                
+              }else if (this._stock.length) {
                 var loc   = this._stock.pop();
                 var exist = this.$load(loc).at(loc.pop());
                 item._uid = exist.pop().uid();
@@ -886,8 +901,25 @@
                 return this.push(this._val || (this._val = this.locate(this._uid)), item);
               }
             }),
+            (function restore(item) {
+              var uid = item._uid || item;
+              var loc = this._locked.findIndex((a) => {
+                return a.reduce((r, x, i) => {
+                  r += (x * Math.pow(10, 3 - i));
+                  return r;
+                }, 0) === uid;
+              });
+              if (loc >= 0) {
+                this._locked.splice(loc, 1);
+              }
+              return this.find(uid);
+            }),
             (function clear(item) {
-              this._stock[(this._stock.push(this.$locate(item._uid, []))-1)].push(item._uid%10);
+              if (item._locked) {
+                this._locked[(this._locked.push(this.$locate(item._uid, []))-1)].push(item._uid%10);
+              }else {
+                this._stock[(this._stock.push(this.$locate(item._uid, []))-1)].push(item._uid%10);
+              }
               return this;
             })
           ],
@@ -897,8 +929,8 @@
             })
           ],
           add: function(root) {
-            return function(store) {
-              return root.add(store);
+            return function(store, ref) {
+              return root.add(store, ref);
             };
           },
           make: function(klass) {
@@ -919,11 +951,12 @@
     // === Store === //
       (function() {
         return {
-          klass: function Store(ref, name) {
-            this._val = this.$data(this);
+          klass: function Store(ref, name, uid) {
+            this._all = this.$data(this, uid);
+            this._val = this._all[0];
+            this._ids = this._all[1];
+            this._map = this._all[2];
             this._cid = name || 'root';
-            this._ids = [];
-            this._map = {};
 
             if (ref) this._ref = this.is(ref.parent) ? ref.parent : ref;
           },
@@ -952,8 +985,17 @@
             (function store() {
               return this;
             }),
+            (function lock() {
+              this._locked = true;
+            }),
+            (function unlock() {
+              this._locked = false;
+            }),
             (function index(key) {
               return this._map[key];
+            }),
+            (function ids() {
+              return this._ids;
             }),
             (function keys(index) {
               return typeof index == 'number' ? this._ids[index] : this._ids.slice(0);
@@ -963,12 +1005,15 @@
             }),
             (function get(key) {
               if (!key && typeof key == 'undefined') return this._ref;
-              else if (key && typeof key == 'string' && this._map[key]>=0) return this._val[this._map[key]];
+              else if (key && typeof key == 'string' && this._map[key]>=0) return key.substr(0, 1) === '*' ? this.read(key) : this._val[this._map[key]];
               else if (key && typeof key == 'string' && key.indexOf('.')>=0) return this.path(key);
               else return typeof key == 'string' && (key || this._map[key]>=0) ? this._val[this._map[key]] : this._ref;
             }),
             (function val(key, value) {
               return key && typeof key == 'string' && this.has(key) ? (value ? (this._val[this._map[key]] = value) : this._val[this._map[key]]) : (value ? this.set(key, value) : this.get(key));
+            }),
+            (function read(key) {
+              return this.find(this._val[this._map[key]]);
             }),
             (function initial(key) {
               var ref = this;
@@ -993,11 +1038,15 @@
             (function parent(key) {
               return this._ref && !(this._ref instanceof this.__) ? this._ref.parent(key) : (key ? this._ref.get(key) : this._ref);
             }),
+            (function key(index, raw) {
+              var key = this._ids[index];
+              return key && typeof key === 'string' && !raw ? key.replace('*', '') : key;
+            }),
             (function at(index) {
-              return this._val.length && index < this._val.length ? this._val[index] : null;
+              return this._val.length && index < this._val.length ? this.get(this.keys(index)) : null;
             }),
             (function first() {
-              return this._val.length && this.at(0);
+              return this._val.length && this.get(this.keys(0));
             }),
             (function last() {
               return this._val.length && this.at(this._val.length - 1);
@@ -1011,8 +1060,8 @@
             (function push(key, value) {
               return arguments.length > 1 ? ((this.get(key) || this.set(key, [])).push(value)) : this.push('vals', key);
             }),
-            (function add(name, ref) {
-              return this.set(name, this.is(ref) ? ref : this.constructor.of(ref || this, name));
+            (function add(name, ref, uid) {
+              return this.set(name, this.is(ref) ? ref : this.constructor.of(ref || this, name, uid));
             }),
             (function child(name, ctor, ref) {
               var opts = typeof name == 'object' ? name : {};
@@ -1044,30 +1093,34 @@
               if (!node || !node.length || !node.length()) {
                 return {};
               }else if (!id) {
-                vals = node.reduce(function(r, v, k) {
+                vals = node.reduce(function(r, v, k, n, i) {
                   if (node.is(v)) {
-                    r[k] = v.clear();
-                    v.db.clear(v);
+                    if (node.key(i) === node.key(i, true)) {
+                      r[k] = v.clear();
+                      v.db.clear(v);
+                    }else {
+                      r[k] = node.key(i, true);
+                    }
                   }else {
                     r[k] = v;
                   }
                   return r;
                 }, {});
-                node._map = {};
+
+                node._map = node._all[2] = {};
                 node._ids.splice(0);
                 node._val.splice(0);
                 return vals;
               }else {
                 var idx = node._map[id],
-                idxs = sys.get('utils.values')(node._map),
-                keys = sys.get('utils.keys')(node._map),
+                keys = node._ids.splice(0),
+                idxs = keys.map(k => node._map[k]),
                 val  = [].concat(node._val.splice(0)),
                 pos  = 0,
                 del  = [],
                 tmp;
 
-                node._map = {};
-                node._ids.splice(0);
+                node._map = node._all[2] = {};
                 while(pos < val.length) {
                   if (id != keys[pos]) {
                     tmp = val[idxs[pos]];
@@ -1093,33 +1146,55 @@
             (function children() {
               return this._ref && !(this._ref instanceof this.__) ? this._ref._children : '';
             }),
-            (function values(recur, children, nodes) {
-              var node = this;
-              return node._val.reduce(function $reduce(result, value, index) {
-                var key = node._ids[index];
-                if (node.is(value)) {
-                  if (value.get('$$skip')) {
-                    // auxiliary node
-                  }else if (!children && node.children() == key) {
-                    value.reduce(function(r, v, k, i) {
-                      if (node.is(v)) {
-                        if (nodes && ('' + parseInt(k)) !== k) {
-                          result[key] || (result[key] = []);
-                          result[key].push(k);
-                        }
-                        r[k] = v.values(recur, children, nodes);
-                      }else r[k] = v;
-                      return r;
-                    }, result);
-                  }else {
-                    result[key] = recur ? value.values(typeof recur == 'number' ? (recur - 1) : recur, children, nodes) : value;
-                  }
-                }else {
-                  result[key] = value;
-                }
-                return result;
-              }, {});
+            (function base() {
+              return this._ref && !(this._ref instanceof this.__) ? this._ref.base() : {};
             }),
+            (function(wrap, run) {
+              return wrap(run);
+            })(
+              (function(run) {
+                return function values(recur, children, nodes) {
+                  return run(children, nodes)([], this, recur);
+                }
+              }),
+              (function(children, nodes) {
+                return function $values(stack, node, recur) {
+                  return node._val.reduce(function $reduce(result, value, index) {
+                    var key = node._ids[index], uid;
+                    if (node.is(value) && (uid = value.uid())) {
+                      if (stack.indexOf(uid) >= 0) {
+                        result[key] = `[RECUR:${uid}]`;
+                      }else if (stack.push(uid) && value.get('$$skip')) {
+                        // auxiliary node
+                      }else if (!children && node.children() == key) {
+                        value.reduce(function(r, v, k, i) {
+                          if (k === key) {
+                            // SKIP!
+                          }else if (node.is(v)) {
+                            if (nodes && ('' + parseInt(k)) !== k && v.cid().indexOf('*') !== 0) {
+                              result[key] || (result[key] = []);
+                              result[key].push(k);
+                            }
+                            r[k] = $values(stack.slice(0), v, recur);
+                          }else r[k] = v;
+                          return r;
+                        }, result);
+                      }else {
+                        result[key] = recur ? $values(stack.slice(0), value, typeof recur == 'number' ? (recur - 1) : recur) : value;
+                      }
+                    }else if (key && key.indexOf('*') === 0) {
+                      result[value] = node.ref().values(recur, children, nodes);
+                    //   node.ref().values().lift(function(vals, code) {
+                    //     result[vals[code]] = vals;
+                    //   }).ap(node.get(key.slice(1)));
+                    }else {
+                      result[key] = value;
+                    }
+                    return result;
+                  }, node.base());
+                }
+              })
+            ),
             (function convert() {
               return this.parse.apply(this, [].slice.call(arguments));
             }),
@@ -1138,8 +1213,9 @@
             }),
             (function filter(f) {
               var arr = [], store = this;
-              this._val.forEach(function(v, i) {
-                if (f(v,store._ids[i],i,store)) {
+              this._ids.forEach(function(k, i) {
+                let v = store.get(k);
+                if (f(v,store.key(i),i,store)) {
                   arr.push(v);
                 }
               });
@@ -1147,7 +1223,7 @@
             }),
             (function reduce(f, r) {
               return this._ids.reduce(function(r, k, i) {
-                r.res = f(r.res, r.node.get(k), k, r.node, i);
+                r.res = f(r.res, r.node.get(k), typeof k === 'string' ? k.replace('*', '') : k, r.node, i);
                 return r;
               }, { res: r || {}, node: this }).res;
             }),
@@ -1161,6 +1237,7 @@
               (function bind(f, x, s, y) {
                 return function $fn(v, i, o) {
                   var k = y || (s && s.keys ? s.keys(i) : v.name);
+                  var r = k.indexOf('*') === 0 ? sys.find(v.uid || v) : v;
                   if (s && s.is && s.is(v) && v._val.length) return v.bind(f, (x[k] = {}));
                   else if (v && v.name == '$_arr') return v().bind(bind(f, (x[k] = {}), s, k));
                   return (x[k] = f(v, k, i, s && s._ref ? (s._cid == s._ref._cid ? s.ref() : s) : o) || v);
@@ -1178,19 +1255,19 @@
               var recur = (args.length && typeof args[0] == 'boolean' ? args.shift() :
                     (args.length && typeof args[args.length-1] == 'boolean' ? args.pop() : false));
               var msg   = (args.length && typeof args[0] == 'string' ? args.shift() : '');
-              var opts  = (args.length && typeof args[0] == 'object' ? args.shift() : null);
+              var opts  = (args.length && typeof args[0] == 'object' ? args.shift() : {});
               var count = 0, bind = this.bind(function(x, k, i, o) {
                 var info = msg ? [ msg ] : [];
                 if (o && o.is) {
-                  info.push(o.identifier(), k, x, i, o.uid(), o.store().is(x) ? 'store' : 'value', count);
+                  info.push(o.identifier(), k, x, i, o.uid(), o.store().is(x) ? 'store' : o.is(x) ? 'node' : 'value', count);
                 }else {
                   info.push(x, o, i, count);
                 }
-                console.log(info);
+                if (opts.log === true) console.log(info);
                 count++;
                 return info.arr();
               }, opts);
-              return bind;//recur ? bind.bind(unit, opts) : bind;
+              return recur ? bind.bind(unit, opts) : bind;
             }),
             (function object(k) {
               return { '$$': true, value: this.get(k), key: k, index: this.index(k), ref: this.identifier(), object: this, level: this.level() };
@@ -1243,8 +1320,8 @@
             )
           ],
           attrs: [
-            (function of(ref, name) {
-              return new this(ref, name);
+            (function of(ref, name, uid) {
+              return new this(ref, name, uid instanceof this ? uid._uid : uid);
             })
           ],
           find: function() {
@@ -1582,10 +1659,15 @@
               }else if ((key == 'fn' || key == '$fn') && result[keys[idx+1]] instanceof Function) {
                 result = result;
               }else if (result.isStore) {
-                if (key.substr(0, 1) == '%') key = result.get(key.slice(1));
-                if (key && result.has(key)) result = result.get(key);
-                else if (key) result = result.get(key) || (result.ref() && result.ref().get(key)) || (value ? result.child(key) : ((keys.length - idx) > 1 || key.substr(0, 1) == '$' ? null : null));//result[key]));
-                else result = null;
+                if (key.substr(0, 1) == '*') {
+                  if (result.ref()) result = result.ref().get(key);
+                  else if ((key = result.get(key))) result = result.find(key.uid || key);
+                }else {
+                  if (key.substr(0, 1) == '%') key = result.get(key.slice(1));
+                  if (key && result.has(key)) result = result.get(key);
+                  else if (key) result = result.get(key) || (result.ref() && result.ref().get(key)) || (value ? result.child(key) : ((keys.length - idx) > 1 || key.substr(0, 1) == '$' ? null : null));//result[key]));
+                  else result = null;
+                }
               }else if (result instanceof Array) {
                 result = result.at(parseInt(key || 0) || 0);
               }else if (typeof result == 'object') {
@@ -1990,17 +2072,19 @@
 
               if (opts.parent && this.is(opts.parent)) {
                 this._parent = opts.parent;
-                if (this.__children || this._parent.__children) {
-                  this._children = this.__children = this._parent.__children;
-                }
-                var store = opts.store || this._parent.get(this._cid);
+                var store = this._parent.get(this._cid);
                 if (store && this.test(store)) {
                   this._store = store;
                   this._store.ref(this);
                 }else if (this._children && this._cid !== this._children) {
-                  this._store = this._parent.children()._store.add(this._cid, this);
+                  //console.log('CHILDREN', this.constructor.name, this._children, this.identifier(), this.cid());
+                  this._store = this._parent.children()._store.add(this._cid, this, opts.store);
+                // }else if (this._parent._children && this._cid !== this._parent._children) {
+                //   console.log('CHILDREN2', this.constructor.name, this._parent._children, this.identifier(), this.cid());
+                //   this._store = this._parent.children()._store.add(this._cid, this, opts.store);
                 }else {
-                  this._store = this._parent._store.add(this._cid, this);
+                  //console.log('DEFAULT', this.constructor.name, this.identifier(), this.cid());
+                  this._store = this._parent._store.add(this._cid, this, opts.store);
                 }
                 if (!this._events) {
                   if (opts.events) {
@@ -2040,9 +2124,10 @@
               var children = this._children || this.ctor.prop('_children');
               return children ? (this.get(children) || this.node(children)) : this;
             }),
-            (function $children(children) {
-              this._children = this.__children = (children || this._cid);
-              return this;
+            (function nodes() {
+              return this.children().map(function(child, key, node) {
+                return child && child.ref instanceof Function ? child.ref() : false;
+              }).filter(unit);
             }),
             (function extractID(opts) {
               return (typeof opts == 'string' || opts == 'number') ? opts
@@ -2096,15 +2181,18 @@
               (function get(node, key) {
                 if (!key && typeof key == 'undefined') return node._store;
                 else if (key === '%current') return node._store.get('current') ? get(node, node._store.get('current')) : undefined;
-                else if (key && typeof key == 'string' && (node.has(key))) return node._store.get(key);
+                else if (key && typeof key == 'string' && (node.has(key))) return key.substr(0, 1) === '*' ? node.read(key, node._store.val(key)) : node._store.get(key);
                 else if (key && typeof key == 'number') return node._store.at(key);
                 else if (key && key.indexOf && key.indexOf('.') > 0) return node._store.path(key);
                 else if (key && node._children && node.has(node._children)) {
-                  return node.get(node._children).get(key);
+                  return parseInt(key).toString() === key ? node.nodes().at(parseInt(key)) : node.get(node._children).get(key);
                 }else if (key && key instanceof Array) return key.length > 1 ? node._store.path(key) : (key.length ? node.get(key.slice(0).shift()) : node);
                 else return key || key === '' ? undefined : (node._ref || node);
               })
             ),
+            (function read(key) {
+              return this._store.get(key);
+            }),
             (function val(key, value) {
               return this._store.val(key, value);
             }),
@@ -2259,7 +2347,7 @@
             }),
             (function child(opts, ctor, parent) {
               parent || (parent = this);
-              var exists = this.exists(opts, ctor), instance;
+              var exists = (ctor && ctor.prototype.exists ? ctor.prototype : this).exists.call(parent, opts, ctor), instance;
               if (exists && this.is(exists)) return exists;
               var options  = typeof opts == 'object' ? opts : { name: opts, parent: parent };
               options.parent || (options.parent = this);
@@ -2289,6 +2377,9 @@
               return this.child(opts, this.__);
             }),
           // === VALUES ETC === //
+            (function base() {
+              return {};
+            }),
             (function values(recur, children, nodes) {
               return this._store.values(recur, children, nodes);
             }),
@@ -2311,6 +2402,9 @@
             }),
             (function index(key) {
               return this._store.index(key);
+            }),
+            (function ids() {
+              return this._store.ids();
             }),
             (function keys(index) {
               return this._store.keys(index);
@@ -2530,7 +2624,7 @@
                 if (evt.target && evt.currentTarget && evt.currentTarget.id === this.nid()) {
                   var path = this.view().bindelem(evt.target);
                   var name = path.pop();
-                  return this.lookup('data.model').get(path).map(function(node) {
+                  return this.lookup('data.model').prop('current', path).map(function(node) {
                     if (evt.target.getAttribute('type') == 'checkbox') {
                       var raw = node.get(name);
                       var val = typeof raw === 'string' ? raw.trim() : raw, index;

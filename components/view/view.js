@@ -280,13 +280,12 @@ define(function() {
         },
  
         enable: function(node) {
-          return this.$el().lift(function(e, c) {
-            return { elem: e, comp: c.parent('data.model') || c.parent()
-             };
+          return this.$el().lift(function(e, v) {
+            return { elem: e, comp: v.parent('data.model') || v.parent(), view: v };
           }).ap(this).lift(function(o, u) {
             return this.fx(function() {
               if (!u.length()) {
-                u.push({ comp: o.comp, elms: [ o.elem ], path: [] });
+                u.push({ comp: o.comp, elms: [ o.elem ], path: [], view: o.view });
               }
             });
           }).run(this.$updater.fork({ uid: this.parent().uid(), arr: [] }));
@@ -480,9 +479,9 @@ define(function() {
             return path && path.indexOf('style:');
           });
           while (elem && (elem = elem.parentElement)) {
-            if (elem.hasAttribute('data-bind-ext')) {
+            if (elem.getAttribute('data-bind-ext')) {
               path.unshift(elem.getAttribute('data-bind-ext'));
-            }else if (elem.hasAttribute('data-bind-path')) {
+            }else if (elem.getAttribute('data-bind-path')) {
               path.unshift(elem.getAttribute('data-bind-path'));
               break;
             }
@@ -545,10 +544,10 @@ define(function() {
         }
       },
       updater: function() {
-        return sys.eff('dom.elements.attr').lift(function(attr, comp) {
+        return sys.eff('dom.elements.attr').lift(function(attr, base) {
           return function(item) {
             if (item) {
-              return comp.lookup(item.path).lift(function(node, name) {
+              return base.comp.locate(item.path).lift(function(node, name) {
                 return node.lookup(name).chain(function(value) {
                   return attr.run(item.elem)(name.indexOf(':') < 0 ? 'value' : name.split(':').shift(), value);
                 });
@@ -563,7 +562,7 @@ define(function() {
           return function(v) {
             if (v.length) {
               if (v[0].comp) {
-                this.push(v[0].comp);
+                this.push({ comp: v[0].comp, view: v[0].view });
               }
               if (!v[0].elms.length) {
                 v.shift();
@@ -577,9 +576,9 @@ define(function() {
               if (fold.skip && fold.skip(i)) {
                 //
               }else if (i.children && i.children.length) {
-                if (i.hasAttribute('data-bind-ext')) {
+                if (i.getAttribute('data-bind-ext')) {
                   v.push({ path: o.path.concat(i.getAttribute('data-bind-ext')), elms: [].slice.call(i.children).filter(fold.filter) });
-                }else if (i.hasAttribute('data-bind-path')) {
+                }else if (i.getAttribute('data-bind-path')) {
                   v.push({ path: o.path.concat(i.getAttribute('data-bind-path')), elms: [].slice.call(i.children).filter(fold.filter) });
                 }else {
                   v.push({ path: o.path, elms: [].slice.call(i.children).filter(fold.filter) });
@@ -593,13 +592,13 @@ define(function() {
           }
         })([]).lift({
           collect: function(i) {
-            return i.matches('[data-bind-name]');
+            return i && i.matches('[data-bind-name]');
           },
           skip: function(i) {
-            return (i.localName === 'svg' || i.localName === 'i');
+            return !i || i.localName === 'svg' || i.localName === 'i';
           },
           filter: function(i) {
-            return i.localName !== 'svg' && i.localName !== 'i' && !i.matches || !i.matches('[data-type="component"]');
+            return i && i.localName !== 'svg' && i.localName !== 'i' && (!i.matches || !i.matches('[data-bind-path]'));
           }
         });
       },
