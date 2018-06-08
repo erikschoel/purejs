@@ -28,10 +28,15 @@ define(function() {
         render: function() {
           return this.get('render') || this.set('render', this.prop('main').run(this));
         },
-        load: function(record) {
-          return record.read().orElse(record).prop('toJSON', true).chain((data) => {
-            return this.menu(data.dbid, this.prop('transf').run(data).values(true).unit());
-          });
+        load: function(evt) {
+          var record = evt.value;
+          if (evt.action === 'remove') {
+            return this.get(record.cid()).get('data.main.menu').clear(record.cid());
+          }else {
+            return record.read().orElse(record).prop('toJSON', true).chain((data) => {
+              return this.menu(data.dbid, this.prop('transf').run(data).values(true).unit());
+            });
+          }
         },
         loadRecord: function(record, opts, values) {
           return this.menu(record.get('dbid'), values, opts);

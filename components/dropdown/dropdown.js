@@ -44,18 +44,23 @@ define(function() {
       control: {
         data: {
           change: function(evt) {
-            if (evt.action === 'create' && typeof evt.value === 'object' && evt.value.isStore) {
+            if (['create','replace'].includes(evt.action) && typeof evt.value === 'object' && evt.value.isStore) {
               if (evt.value.length()) {
                 var root = this.root();
                 var type = evt.value.parent().cid();
                 if (type === 'item') {
                   return root.$fn('render').run(type).run(evt.value.values(true));
                 }else if (type === 'menu') {
-                  root.$fn('empty').run();
-                  return root.$fn('attach').ap(root.parent('$fn.render').run('dropdown').run(evt.value.values(true)));
+                  if (evt.action === 'create') {
+                    root.$fn('empty').run();
+                  }else {
+                    return root.parent().$el('[data-key="' + evt.value.cid() + '"]').orElse(function() {
+                      return root.$fn('attach').ap(root.parent('$fn.render').run('dropdown').run(evt.value.values(true)));
+                    });
+                  }
                 }
               }
-            }else if ((evt.action === 'create' && evt.target === 'ccount') || evt.action === 'update') {
+            }else if (evt.action === 'update') {
               var root = this.root();
               var node = sys.find(evt);
               var type = node.parent().cid();
@@ -73,6 +78,11 @@ define(function() {
                   }
                 }).run(root.parent().view().render(type === 'item' ? 'item' : 'dropdown').run(node.values(true)));
               }
+            }else if (evt.action === 'remove') {
+              var root = this.root();
+              return root.parent().$el('[data-key="' + root.cid() + '"]').map(function(elem) {
+                return elem.parentElement.removeChild(elem);
+              });
             }
           }
         },

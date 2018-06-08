@@ -90,8 +90,10 @@ define(function() {
             return comp.get(current);
           }).ap(this.lookup('data.current.modal'));
         },
-        load: function(record) {
-          
+        load: function(evt) {
+          return evt.value.read().map((record) => {
+            return this.lookup(record.madi()).chain(comp => comp.refresh(record));
+          });
         }
       },
       control: {

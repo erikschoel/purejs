@@ -992,7 +992,7 @@
               this._locked = false;
             }),
             (function index(key) {
-              return this._map[key];
+              return isNaN(parseInt(key)) ? this._map[key] : this.index(this._ids[key]);
             }),
             (function ids() {
               return this._ids;
@@ -1007,6 +1007,7 @@
               if (!key && typeof key == 'undefined') return this._ref;
               else if (key && typeof key == 'string' && this._map[key]>=0) return key.substr(0, 1) === '*' ? this.read(key) : this._val[this._map[key]];
               else if (key && typeof key == 'string' && key.indexOf('.')>=0) return this.path(key);
+              else if (key && !isNaN(parseInt(key)) && this._ids[parseInt(key)]) return this.at(parseInt(key));
               else return typeof key == 'string' && (key || this._map[key]>=0) ? this._val[this._map[key]] : this._ref;
             }),
             (function val(key, value) {
@@ -1116,6 +1117,9 @@
                 keys = node._ids.splice(0),
                 idxs = keys.map(k => node._map[k]),
                 val  = [].concat(node._val.splice(0)),
+                // val  = node._val.splice(0).map((v, i) => {
+                //   return typeof keys[i] === 'string' && keys[i].substr(0, 1) === '*' ? this.find(v) : v;
+                // }),
                 pos  = 0,
                 del  = [],
                 tmp;
@@ -1127,12 +1131,12 @@
                     if (tmp.isStore) node.add(keys[pos], tmp);
                     else node.set(keys[pos], tmp);
                   }else {
-                    del.push([ keys[pos], val[idxs[pos]] ]);
+                    del.push(typeof keys[pos] === 'string' && keys[pos].substr(0, 1) === '*' ? [ keys[pos].substr(1), this.find(val[idxs[pos]]) ] : [ keys[pos], val[idxs[pos]] ]);
                   }
                   pos++;
                 }
                 return del.reduce(function(r, v, i) {
-                  r[v[0]] = v[1].isStore ? v[1].values(true) : v[1];
+                  r[v[0]] = v[1].isStore ? v[1].ref().values(true) : v[1];
 
                   return r;
                 }, {});
@@ -1664,7 +1668,8 @@
                   else if ((key = result.get(key))) result = result.find(key.uid || key);
                 }else {
                   if (key.substr(0, 1) == '%') key = result.get(key.slice(1));
-                  if (key && result.has(key)) result = result.get(key);
+                  if (key && !isNaN(parseInt(key)) && result._children && result.has(result._children)) result = result.children().at(parseInt(key));
+                  else if (key && result.has(key)) result = result.get(key);
                   else if (key) result = result.get(key) || (result.ref() && result.ref().get(key)) || (value ? result.child(key) : ((keys.length - idx) > 1 || key.substr(0, 1) == '$' ? null : null));//result[key]));
                   else result = null;
                 }
@@ -2077,14 +2082,11 @@
                   this._store = store;
                   this._store.ref(this);
                 }else if (this._children && this._cid !== this._children) {
-                  //console.log('CHILDREN', this.constructor.name, this._children, this.identifier(), this.cid());
                   this._store = this._parent.children()._store.add(this._cid, this, opts.store);
-                // }else if (this._parent._children && this._cid !== this._parent._children) {
-                //   console.log('CHILDREN2', this.constructor.name, this._parent._children, this.identifier(), this.cid());
-                //   this._store = this._parent.children()._store.add(this._cid, this, opts.store);
+                  this._store.ref(this);
                 }else {
-                  //console.log('DEFAULT', this.constructor.name, this.identifier(), this.cid());
                   this._store = this._parent._store.add(this._cid, this, opts.store);
+                  this._store.ref(this);
                 }
                 if (!this._events) {
                   if (opts.events) {
@@ -2182,7 +2184,7 @@
                 if (!key && typeof key == 'undefined') return node._store;
                 else if (key === '%current') return node._store.get('current') ? get(node, node._store.get('current')) : undefined;
                 else if (key && typeof key == 'string' && (node.has(key))) return key.substr(0, 1) === '*' ? node.read(key, node._store.val(key)) : node._store.get(key);
-                else if (key && typeof key == 'number') return node._store.at(key);
+                else if (typeof key == 'number') return node._store.at(key);
                 else if (key && key.indexOf && key.indexOf('.') > 0) return node._store.path(key);
                 else if (key && node._children && node.has(node._children)) {
                   return parseInt(key).toString() === key ? node.nodes().at(parseInt(key)) : node.get(node._children).get(key);
@@ -2220,7 +2222,9 @@
               return this.lookup(key).map(function(node) {
                 var store = node.store();
                 store.clear();
-                return node.parse(values || {});
+                node.parse(values || {});
+                node.parent().emit('change', node.cid(), 'replace', node);
+                return node;
               }).orElse(function() {
                 this.clear(key);
                 return this.child(key).parse(values || {});
@@ -2388,6 +2392,7 @@
             }),
             (function clear(id) {
               if (!id) {
+                //return this.parent().children().clear(this.cid());
                 return this.parent().emit('change', this.cid(), 'remove', this) || this._store.clear();
               }else if (id.indexOf('.') > 0) {
                 var path = id.split('.');
@@ -2395,6 +2400,8 @@
                 return this.get(path).clear(name);
               }else if (this._children && id !== this._children) {
                 return this.children().clear(id);
+              }else if (!isNaN(parseInt(id)) && this.has(parseInt(id))) {
+                return this.emit('change', id, 'remove', this.at(parseInt(id))) || this._store.clear(this.keys(parseInt(id)));
               }else if (this.has(id)) {
                 return this.emit('change', id, 'remove', this.get(id)) || this._store.clear(id);
               }

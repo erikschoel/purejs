@@ -227,7 +227,7 @@ define(function() {
                 mod.emit('change', 'button.' + trg, 'update', ext);
                 mod.get(rel).emit('change', 'button.' + trg, 'update', ext);
                 node.emit('change', 'button.' + trg, 'update', ext);
-                return node.get('data.model').current();
+                return mod.current().get('modal.model');
               }).chain(function(node) {
                 return node.emit('change', 'button.' + trg, 'update', ext);
               });

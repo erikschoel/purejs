@@ -37,6 +37,15 @@ define(function() {
             }
           }
         },
+        refresh: function(node) {
+          this.lookup('form').map(function(form) {
+            return form.control('main').loading(form, node);
+          });
+          this.control('config.data.items').map((name) => {
+            return this.get(name).control('main').show(name, node, node.get(name) || node.child(name));
+          });
+          return node;
+        },
         reload: function(item, code) {
           if (code === 'madi_1') {
             return this.closest('admin').control('state').current({ value: 'attributes.' + item.value });

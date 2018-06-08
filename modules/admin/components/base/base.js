@@ -281,19 +281,15 @@ define(function() {
         schema: {
           change: function(evt) {
             if (evt.target === 'remove' && typeof evt.value === 'string' && evt.value.indexOf('.') > 0) {
-              sys.$find(evt).lift(function(data, root) {
-                var code = evt.value.split('.').shift();
-                var list = data.get(code), node, chld;
-                if (list && data.get(evt.value)) {
+              //sys.$find(evt).lift(function(data, root) {
+              sys.$find(evt).prop('retrieve', this.root().get('modal').state('path')).lift(function(data, root) {
+                var code = evt.value.split('.').shift(), node, chld, curr;
+                var list = data.get(code);//data.retrieve(root.get('modal').state('path')).unit();
+                var curr = data.get(evt.value);
+                if (list && curr) {
                   var remove = data.clear(evt.value);
-                  data.child('remove').parse(remove);
-                  chld = list.children();
-                  node = chld.values(true);
-                  chld.clear();
-                  list.parse(node.keys().reduce(function(r, k, i) {
-                    r[i+''] = node[k];
-                    return r;
-                  }, {}), true);
+                  data.child('remove').children().parse(remove.obj().omit([ 'nodes' ].concat(remove.nodes ? remove.nodes : [])), 1);
+                  data.refs(false).prop('map', (ref) => ref.update());
                   root.get(code).control('main').show(code, data);
                 }
               }).ap(this.root());
@@ -317,7 +313,6 @@ define(function() {
               return root.get('modal.model').locate('current').chain(function(data) {
                 var code = data.get('dbid');//.replace('mare', data.get('madi'));
                 if (evt.value === 'cancel') {
-                  data.clear();
                   root.reload({ value: code });
                 }else if (evt.value === 'add') {
                   var tabs = root.get(conf.name.replace('madi', 'tabs'));
@@ -346,8 +341,6 @@ define(function() {
                         schema.clear(result.dbid);
                         return schema.parse(result.meta, 3, true);
                       });
-                    }else {
-                      data.clear();
                     }
                     if (result.dbid === code) {
                       // root.control('admin').load(result).run(root);
